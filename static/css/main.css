@@ -1,41 +1,80 @@
+/* =========================================================================
+   Paleta corporativa
+   -------------------------------------------------------------------------
+   El amarillo de marca (#E5D504) tiene 1.52:1 contra blanco, así que NO es
+   un color de texto en modo claro. Por eso la marca se reparte en tres
+   papeles y no en un único token de acento:
+
+     --brand       relleno de superficies >=24px, SIEMPRE con --on-brand encima
+     --brand-deep  bordes, foco y elementos pequeños (3.98:1 -> UI, no texto)
+     --brand-ink   texto, enlaces y estados activos (5.23:1 sobre --bg)
+
+   Regla: un elemento amarillo pequeño sobre fondo claro desaparece. Puntos,
+   iconos finos y texto van en --brand-ink o --brand-deep, nunca en --brand.
+
+   En oscuro esto se invierte: #E5D504 rinde 12.31:1 sobre el fondo, así que
+   --brand y --brand-ink pasan a valer lo mismo.
+
+   El amarillo es exclusivo de identidad y no participa en la rampa de
+   estados: "pendiente" usa pizarra y "aviso" usa naranja, para que el color
+   corporativo nunca se lea como un estado del sistema.
+   ========================================================================= */
+/* Bordes en tres niveles. Un único tono de borde obliga a elegir entre
+   controles legibles y contenedores discretos; separándolos se consigue lo
+   uno y lo otro:
+     --line2        1.37:1  separadores internos (filas de tabla)
+     --line         1.72:1  contorno de contenedores (card, tabla, panel)
+     --line-strong  3.44:1  contorno de CONTROLES (input, select, botón, chip)
+                            -> WCAG 1.4.11 exige 3:1 aquí, en el resto no
+     --line-hover   5.30:1  control apuntado */
 :root {
-  --bg: #F6F6F3; --surface: #FFFFFF; --surface2: #FBFBF9;
-  --ink: #15171A; --muted: #6B6F73; --faint: #9BA0A4;
-  --line: #E3E3DD; --line2: #EFEFEA;
-  --accent: #24544A; --accent-soft: #E6EFEB; --on-accent: #FFFFFF;
-  --amber: #9A6614; --amber-soft: #F7EEDC;
+  --bg: #F7F6EE; --surface: #FFFFFF; --surface2: #F2F0E4;
+  --ink: #17170F; --muted: #5A5A4C; --faint: #6F6E5C;
+  --line: #C9C6B0; --line2: #DFDDCC;
+  --line-strong: #8F8B74; --line-hover: #6F6C58;
+  --brand: #E5D504; --brand-deep: #89821A; --brand-ink: #6F6912;
+  --brand-soft: #F2EFD2; --on-brand: #191703;
+  --slate: #4F5A63; --slate-soft: #E9ECEF;
+  --warn: #A8541B; --warn-soft: #F7EADF;
   --blue: #1F5C93; --blue-soft: #E4EDF6;
-  --green: #24544A; --green-soft: #E3EFEA;
-  --red: #A33527; --red-soft: #F7E6E3;
-  --shadow: 0 1px 2px rgba(20,22,24,.05), 0 8px 24px rgba(20,22,24,.05);
+  --green: #2C6B45; --green-soft: #E3F0E8;
+  --red: #A33527; --red-soft: #F7E6E3; --on-red: #FFFFFF;
+  --shadow: 0 1px 2px rgba(23,23,15,.05), 0 8px 24px rgba(23,23,15,.05);
   --radius: 10px;
 }
 
-/* Aplica en modo "system" cuando el navegador prefiere oscuro (sin toggle explícito) */
+/* Aplica en modo "system" cuando el navegador prefiere oscuro (sin toggle explícito).
+   Debe ser idéntico al bloque [data-theme="dark"] de abajo. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111312; --surface: #191C1B; --surface2: #1F2322;
-    --ink: #ECEEEB; --muted: #9AA09C; --faint: #6E7570;
-    --line: #2A2F2D; --line2: #232726;
-    --accent: #6FBFA8; --accent-soft: #1E2A27; --on-accent: #0E1614;
-    --amber: #D9A441; --amber-soft: #2A2418;
+    --bg: #12130E; --surface: #1A1C15; --surface2: #212318;
+    --ink: #ECEBE0; --muted: #9C9C8D; --faint: #6F7063;
+    --line: #2C2E22; --line2: #24261B;
+    --line-strong: #6E7157; --line-hover: #8A8D72;
+    --brand: #E5D504; --brand-deep: #B5AC2A; --brand-ink: #E5D504;
+    --brand-soft: #2B2809; --on-brand: #191703;
+    --slate: #A6B2BC; --slate-soft: #242A2F;
+    --warn: #E0A06A; --warn-soft: #2E2015;
     --blue: #6FA8DC; --blue-soft: #1A2430;
-    --green: #6FBFA8; --green-soft: #16241F;
-    --red: #E08272; --red-soft: #2C1B18;
+    --green: #6FBF8E; --green-soft: #16241C;
+    --red: #E08272; --red-soft: #2C1B18; --on-red: #2C1B18;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
   }
 }
 
 /* Toggle explícito (persistido en localStorage por static/js/theme.js) */
 :root[data-theme="dark"] {
-  --bg: #111312; --surface: #191C1B; --surface2: #1F2322;
-  --ink: #ECEEEB; --muted: #9AA09C; --faint: #6E7570;
-  --line: #2A2F2D; --line2: #232726;
-  --accent: #6FBFA8; --accent-soft: #1E2A27; --on-accent: #0E1614;
-  --amber: #D9A441; --amber-soft: #2A2418;
+  --bg: #12130E; --surface: #1A1C15; --surface2: #212318;
+  --ink: #ECEBE0; --muted: #9C9C8D; --faint: #6F7063;
+  --line: #2C2E22; --line2: #24261B;
+  --line-strong: #6E7157; --line-hover: #8A8D72;
+  --brand: #E5D504; --brand-deep: #B5AC2A; --brand-ink: #E5D504;
+  --brand-soft: #2B2809; --on-brand: #191703;
+  --slate: #A6B2BC; --slate-soft: #242A2F;
+  --warn: #E0A06A; --warn-soft: #2E2015;
   --blue: #6FA8DC; --blue-soft: #1A2430;
-  --green: #6FBFA8; --green-soft: #16241F;
-  --red: #E08272; --red-soft: #2C1B18;
+  --green: #6FBF8E; --green-soft: #16241C;
+  --red: #E08272; --red-soft: #2C1B18; --on-red: #2C1B18;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
 }
 
@@ -47,7 +86,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .mono { font-family: "IBM Plex Mono", monospace; }
-a { color: var(--accent); text-decoration: none; }
+a { color: var(--brand-ink); text-decoration: none; }
 a:hover { color: var(--ink); text-decoration: underline; }
 input, button, select, textarea { font-family: inherit; }
 input::placeholder, textarea::placeholder { color: var(--faint); }
@@ -71,11 +110,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   height: 100vh;
 }
 .app-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
-.app-logo-mark {
-  width: 24px; height: 24px; border-radius: 7px; background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--on-accent); font-size: 12px; font-weight: 700; flex: none;
-}
+.app-logo-mark { width: 24px; height: 24px; border-radius: 50%; flex: none; display: block; }
 .app-logo-text { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
 .app-logo-text .muted { color: var(--muted); font-weight: 400; }
 
@@ -87,7 +122,15 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   cursor: pointer; text-decoration: none;
 }
 .app-nav-item:hover { background: var(--surface2); color: var(--muted); text-decoration: none; }
-.app-nav-item.active { background: var(--accent-soft); color: var(--accent); }
+/* El estado activo se marca con un asta amarilla que sangra el alto completo
+   del item, igual que las astas de la H del logo sangran hasta que las recorta
+   el círculo. Es el único elemento llamativo de la interfaz. */
+.app-nav-item.active { position: relative; color: var(--brand-ink); font-weight: 600; }
+.app-nav-item.active::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--brand);
+}
+.app-nav-item.active:hover { background: transparent; color: var(--brand-ink); }
 .app-nav-item svg { flex: none; }
 
 .app-storage { margin-top: 26px; padding: 0 8px 8px; }
@@ -107,8 +150,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 
 .app-user { display: flex; align-items: center; gap: 10px; padding: 9px 8px; margin-top: 2px; }
 .app-user-avatar {
-  width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft);
-  color: var(--accent); display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft);
+  color: var(--brand-ink); display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; flex: none;
 }
 .app-user-info { min-width: 0; }
@@ -133,17 +176,22 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
   height: 38px; padding: 0 16px;
-  border: 1px solid var(--line); border-radius: 9px;
+  border: 1px solid var(--line-strong); border-radius: 9px;
   background: var(--surface); color: var(--ink);
   font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none;
   white-space: nowrap;
 }
-.btn:hover { background: var(--surface2); text-decoration: none; }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:hover { background: var(--surface2); border-color: var(--line-hover); text-decoration: none; }
+/* Deshabilitado explícito: con opacity el texto caía por debajo de 3:1. */
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: var(--surface2); border-color: var(--line); color: var(--faint);
+  cursor: not-allowed;
+}
 .btn-sm { height: 30px; padding: 0 12px; font-size: 12.5px; }
-.btn-primary { border: none; background: var(--accent); color: var(--on-accent); font-weight: 600; }
-.btn-primary:hover { opacity: .88; background: var(--accent); }
-.btn-danger { border: none; background: var(--red); color: #fff; font-weight: 600; }
+.btn-primary { border: none; background: var(--brand); color: var(--on-brand); font-weight: 600; }
+.btn-primary:hover { opacity: .88; background: var(--brand); }
+/* --on-red, no #fff: en oscuro --red es un salmón claro y el blanco no contrastaba. */
+.btn-danger { border: none; background: var(--red); color: var(--on-red); font-weight: 600; }
 .btn-danger:hover { opacity: .88; background: var(--red); }
 .btn-link { border: none; background: none; color: var(--muted); text-decoration: underline; padding: 0; height: auto; }
 
@@ -176,7 +224,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
   font-size: 11.5px; font-weight: 600; letter-spacing: .01em;
 }
-.badge-pending    { background: var(--amber-soft); color: var(--amber); }
+.badge-pending    { background: var(--slate-soft); color: var(--slate); }
 .badge-processing { background: var(--blue-soft); color: var(--blue); }
 .badge-completed  { background: var(--green-soft); color: var(--green); }
 .badge-error      { background: var(--red-soft); color: var(--red); }
@@ -192,7 +240,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .row-menu[open] summary { background: var(--surface2); }
 .row-menu-content {
   position: absolute; right: 0; top: 32px; z-index: 5; min-width: 140px;
-  border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface);
   box-shadow: var(--shadow); padding: 4px; display: flex; flex-direction: column;
 }
 .row-menu-content a {
@@ -206,29 +254,40 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .search-field { position: relative; flex: 1; max-width: 340px; }
 .search-field svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--faint); }
 .search-field input {
-  width: 100%; height: 38px; padding: 0 14px 0 36px; border: 1px solid var(--line);
+  width: 100%; height: 38px; padding: 0 14px 0 36px; border: 1px solid var(--line-strong);
   border-radius: 9px; background: var(--surface); color: var(--ink); font-size: 13px; outline: none;
 }
-.search-field input:focus { border-color: var(--accent); }
-.chip-group { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); flex-wrap: wrap; }
+.search-field input:hover { border-color: var(--line-hover); }
+.search-field input:focus { border-color: var(--brand-deep); box-shadow: 0 0 0 3px var(--brand-soft); }
+.chip-group { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface); flex-wrap: wrap; }
 .chip {
   height: 30px; padding: 0 12px; border: none; border-radius: 7px;
   font-size: 12.5px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted);
   text-decoration: none; display: inline-flex; align-items: center;
 }
 .chip:hover { text-decoration: none; }
-.chip.active { background: var(--accent); color: var(--on-accent); }
+.chip.active { background: var(--brand); color: var(--on-brand); }
 
 /* Formularios */
 .form-field { margin-bottom: 16px; display: flex; flex-direction: column; gap: 7px; }
 .form-field label { font-size: 12px; font-weight: 500; color: var(--muted); }
 .form-field input, .form-field select, .form-field textarea {
-  height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 9px;
+  height: 40px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 9px;
   background: var(--surface2); color: var(--ink); font-size: 13.5px; outline: none;
 }
 .form-field textarea { height: auto; padding: 11px 13px; resize: vertical; }
+.form-field input:hover, .form-field select:hover, .form-field textarea:hover {
+  border-color: var(--line-hover);
+}
+/* El foco se marca con color de borde Y anillo: el color solo no basta para
+   quien no distingue el olivo del gris. */
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
-  border-color: var(--accent); background: var(--surface);
+  border-color: var(--brand-deep); background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.form-field input:disabled, .form-field select:disabled, .form-field textarea:disabled {
+  border-color: var(--line); background: var(--surface2);
+  color: var(--faint); cursor: not-allowed;
 }
 .form-help { color: var(--faint); font-size: 11px; }
 .form-error, .hf-form-errors { color: var(--red); font-size: 13px; }
@@ -249,8 +308,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .dash-panel-title span { font-size: 12px; color: var(--faint); }
 
 .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 168px; }
-.bar-chart .bar { flex: 1; background: var(--accent-soft); border-radius: 4px 4px 2px 2px; min-height: 2px; }
-.bar-chart .bar.is-today { background: var(--accent); }
+.bar-chart .bar { flex: 1; background: var(--brand-soft); border-radius: 4px 4px 2px 2px; min-height: 2px; }
+.bar-chart .bar.is-today { background: var(--brand); }
 .bar-chart-labels { display: flex; justify-content: space-between; margin-top: 12px; font-size: 11px; color: var(--faint); font-family: "IBM Plex Mono", monospace; }
 
 .queue-row { margin-bottom: 18px; }
@@ -258,7 +317,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .queue-row-head .mono { color: var(--muted); }
 .queue-bar { height: 6px; border-radius: 3px; background: var(--line2); }
 .queue-bar-fill { height: 100%; border-radius: 3px; }
-.queue-bar-fill.status-pending    { background: var(--amber); }
+.queue-bar-fill.status-pending    { background: var(--slate); }
 .queue-bar-fill.status-processing { background: var(--blue); }
 .queue-bar-fill.status-completed  { background: var(--green); }
 .queue-bar-fill.status-error      { background: var(--red); }
@@ -268,7 +327,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .message { padding: 10px 14px; border-radius: 9px; margin-bottom: 8px; font-size: 13.5px; }
 .message-success { background: var(--green-soft); color: var(--green); }
 .message-error { background: var(--red-soft); color: var(--red); }
-.message-warning { background: var(--amber-soft); color: var(--amber); }
+.message-warning { background: var(--warn-soft); color: var(--warn); }
 .message-info { background: var(--blue-soft); color: var(--blue); }
 
 .pagination { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; font-size: 12.5px; color: var(--muted); }
@@ -283,6 +342,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   padding: 56px 64px; background: var(--surface); border-right: 1px solid var(--line);
 }
 .login-brand { display: flex; align-items: center; gap: 10px; }
+.login-logo-mark { width: 28px; height: 28px; }
+.login-brand .app-logo-text { font-size: 15px; }
 .login-form-wrap { max-width: 380px; width: 100%; }
 .login-form-wrap h1 { margin: 0 0 8px; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
 .login-form-wrap > p { margin: 0 0 32px; font-size: 14px; line-height: 1.55; color: var(--muted); }
@@ -292,7 +353,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   display: flex; align-items: flex-start; gap: 9px;
 }
 .login-note-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  /* 6px sobre superficie clara: --brand desaparecería, va en --brand-deep. */
+  width: 6px; height: 6px; border-radius: 50%; background: var(--brand-deep);
   margin-top: 6px; flex: none; animation: pulseDot 2.4s ease-in-out infinite;
 }
 .login-note p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--faint); }
@@ -309,7 +371,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .login-side-content { position: relative; max-width: 420px; }
 .login-side-kicker {
   font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  text-transform: uppercase; color: var(--brand-ink); margin-bottom: 18px;
 }
 .login-side-lead { margin: 0 0 36px; font-size: 22px; line-height: 1.45; font-weight: 500; letter-spacing: -0.01em; }
 .login-steps { display: flex; flex-direction: column; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }

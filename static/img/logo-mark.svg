@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" role="img" aria-label="HFinancierosFiles">
+  <!--
+    Reconstruido a partir de la geometría medida en static/img/Logo_PNG.png:
+    círculo olivo centro (250,247) r 242; H amarilla con astas en x 91-218 y
+    281-409 que sangran en vertical y quedan recortadas por el círculo, y
+    travesaño en y 215-310. Dos tintas planas, fondo transparente.
+  -->
+  <defs>
+    <clipPath id="hf-mark-clip">
+      <circle cx="250" cy="247" r="242"/>
+    </clipPath>
+  </defs>
+  <circle cx="250" cy="247" r="242" fill="#89821A"/>
+  <path d="M91 0H218V215H281V0H409V494H281V310H218V494H91Z"
+        fill="#E5D504" clip-path="url(#hf-mark-clip)"/>
+</svg>

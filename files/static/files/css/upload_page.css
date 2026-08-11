@@ -1,24 +1,29 @@
+/* Complementa static/css/main.css y se carga DESPUÉS que ella (bloque
+   extra_head de upload.html), así que todo va en tokens: con hex en crudo
+   estas reglas pisaban las de main.css y no respondían al modo oscuro. */
+
 .hf-dropzone {
-    border: 2px dashed #9CA3AF;
+    border: 2px dashed var(--line-strong);
     border-radius: 8px;
     padding: 24px;
     text-align: center;
     cursor: pointer;
     outline: none;
     max-width: 480px;
+    background: var(--surface2);
 }
 
 .hf-dropzone:focus-visible {
-    border-color: #2563EB;
+    border-color: var(--brand-deep);
 }
 
 .hf-dropzone.hf-dropzone-dragover {
-    border-color: #2563EB;
-    background: #EFF6FF;
+    border-color: var(--brand-deep);
+    background: var(--brand-soft);
 }
 
 .hf-dropzone-hint {
-    color: #6B7280;
+    color: var(--muted);
     font-size: 13px;
     margin: 0 0 8px;
 }
@@ -30,40 +35,41 @@
 .hf-upload-bar {
     height: 8px;
     border-radius: 4px;
-    background: #E5E7EB;
+    background: var(--line2);
     overflow: hidden;
 }
 
+/* En curso = azul (procesando). El amarillo queda reservado a la marca. */
 .hf-upload-fill {
     height: 100%;
     width: 0%;
-    background: #F59E0B;
+    background: var(--blue);
     transition: width 0.2s ease;
 }
 
 .hf-upload-box.hf-upload-ok .hf-upload-fill {
-    background: #16A34A;
+    background: var(--green);
 }
 
 .hf-upload-box.hf-upload-error .hf-upload-fill {
-    background: #DC2626;
+    background: var(--red);
 }
 
 .hf-upload-status {
     margin-top: 4px;
     font-size: 12px;
-    color: #6B7280;
+    color: var(--muted);
 }
 
 .hf-upload-box.hf-upload-error .hf-upload-status {
-    color: #DC2626;
+    color: var(--red);
 }
 
 .hf-upload-box.hf-upload-ok .hf-upload-status {
-    color: #16A34A;
+    color: var(--green);
 }
 
 .hf-form-errors {
-    color: #DC2626;
+    color: var(--red);
     font-size: 13px;
 }

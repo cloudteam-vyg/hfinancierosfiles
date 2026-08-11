@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Iniciar sesión{% endblock %}
 {% block content %}
 <div class="login-shell">
   <div class="login-panel">
     <div class="login-brand">
-      <div class="app-logo-mark">H</div>
+      <img src="{% static 'img/logo-mark.svg' %}" alt="" class="app-logo-mark login-logo-mark">
       <div class="app-logo-text">hfinancieros<span class="muted">files</span></div>
     </div>
 
