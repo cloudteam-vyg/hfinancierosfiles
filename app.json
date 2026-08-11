@@ -1,0 +1,47 @@
+{
+  "name": "hfinancierosfiles",
+  "description": "Backoffice Django para gestión de archivos financieros multi-cliente (Azure Blob Storage + Celery/Redis para post-procesamiento asíncrono).",
+  "keywords": ["django", "dokku", "celery", "azure-blob-storage"],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Clave secreta de Django. Se genera automáticamente en el primer deploy si no se fija antes con config:set.",
+      "generator": "secret"
+    },
+    "DEBUG": {
+      "description": "Nunca debe ser True en producción.",
+      "value": "False"
+    },
+    "ALLOWED_HOSTS": {
+      "description": "Lista separada por comas de hosts permitidos (dominio(s) de la app en Dokku)."
+    },
+    "DATABASE_URL": {
+      "description": "Inyectada automáticamente por 'dokku postgres:link <servicio> hfinancierosfiles'. No fijar a mano."
+    },
+    "AZURE_ACCOUNT_NAME": {
+      "description": "Cuenta de Azure Storage donde viven los blobs de clientes."
+    },
+    "AZURE_ACCOUNT_KEY": {
+      "description": "Access key de la cuenta de Azure Storage. Secreto."
+    },
+    "AZURE_CONTAINER_NAME": {
+      "description": "Contenedor de Azure Blob Storage (p. ej. clientes-archivos)."
+    },
+    "AZURE_CORS_ALLOWED_ORIGINS": {
+      "description": "Orígenes (esquema+host+puerto) autorizados para subir directo a Azure desde el navegador. Aplicar con: python manage.py sync_azure_cors."
+    },
+    "CELERY_BROKER_URL": {
+      "description": "Debe apuntar a REDIS_URL (inyectada por 'dokku redis:link'), idealmente con otra DB lógica (ej. /1)."
+    },
+    "CELERY_RESULT_BACKEND": {
+      "description": "Normalmente el mismo valor que CELERY_BROKER_URL."
+    },
+    "MAX_UPLOAD_SIZE_MB": {
+      "description": "Límite de tamaño de archivo aplicado por la app al emitir la SAS de subida.",
+      "value": "1024"
+    },
+    "GEVENT_SUPPORT": {
+      "description": "Requerido para gunicorn --worker-class gevent.",
+      "value": "True"
+    }
+  }
+}

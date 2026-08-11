@@ -1,0 +1,49 @@
+# Entornos virtuales
+.venv/
+core/.venv/
+venv/
+env/
+
+# Bytecode / cache de Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Variables de entorno y secretos (jamás commitear credenciales reales)
+.env
+.env.*
+!.env.example
+
+# Base de datos local (el backend real se configura via DATABASE_URL)
+db.sqlite3
+*.sqlite3
+
+# Archivos estáticos generados (se regeneran con collectstatic)
+staticfiles/
+media/
+
+# Tests / cobertura / cache de herramientas
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Empaquetado / distribución accidental
+*.egg-info/
+dist/
+build/
+.claude
+CLAUDE.md
+CHECKS

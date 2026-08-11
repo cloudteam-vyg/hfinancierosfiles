@@ -1,0 +1,74 @@
+{% extends "app_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block app_content %}
+<div class="page-header">
+  <div>
+    <h1>Hola, {{ user.get_full_name|default:user.get_username }}</h1>
+    <p>Resumen del expediente.</p>
+  </div>
+  <a href="{% url 'files:archive-upload' %}" class="btn btn-primary">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+    <span>Subir archivo</span>
+  </a>
+</div>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-label">Archivos totales</div>
+    <div class="stat-value">{{ total_files }}</div>
+    <div class="stat-sub">{{ total_customers }} clientes · {{ total_persons }} personas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">En procesamiento</div>
+    <div class="stat-value color-blue">{{ processing_count }}</div>
+    <div class="stat-sub">Cola de Celery activa</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Volumen almacenado</div>
+    <div class="stat-value">{{ storage_used_gb }}<span style="font-size: 16px; color: var(--muted); margin-left: 4px;">GB</span></div>
+    <div class="stat-sub">En Azure Blob Storage</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Errores (24 h)</div>
+    <div class="stat-value color-red">{{ error_last_24h }}</div>
+    <div class="stat-sub">Requieren reintento</div>
+  </div>
+</div>
+
+<div class="dash-panels">
+  <div class="card">
+    <div class="dash-panel-title">
+      <h2>Cargas por día</h2>
+      <span>Últimos 14 días</span>
+    </div>
+    <div class="bar-chart">
+      {% for day in uploads_by_day %}
+        <div class="bar{% if day.is_today %} is-today{% endif %}" style="height: {{ day.height_pct }}%;" title="{{ day.label }}: {{ day.count }}"></div>
+      {% endfor %}
+    </div>
+    <div class="bar-chart-labels">
+      <span>{{ uploads_by_day.0.label }}</span>
+      <span>{{ uploads_by_day.6.label }}</span>
+      <span>{{ uploads_by_day.13.label }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin: 0 0 20px; font-size: 15px; font-weight: 600;">Estado de la cola</h2>
+    {% for row in status_breakdown %}
+      <div class="queue-row">
+        <div class="queue-row-head">
+          <span>{{ row.upload_status }}</span>
+          <span class="mono">{{ row.total }}</span>
+        </div>
+        <div class="queue-bar">
+          <div class="queue-bar-fill status-{{ row.upload_status|lower }}" style="width: {{ row.pct }}%;"></div>
+        </div>
+      </div>
+    {% empty %}
+      <p style="color: var(--muted); font-size: 13.5px;">Sin archivos todavía.</p>
+    {% endfor %}
+    <a href="{% url 'files:archive-list' %}" class="btn" style="width: 100%; justify-content: center; margin-top: 8px;">Ver todos los archivos</a>
+  </div>
+</div>
+{% endblock %}

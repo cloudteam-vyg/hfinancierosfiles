@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block content %}
+<div class="login-shell">
+  <div class="login-panel">
+    <div class="login-brand">
+      <div class="app-logo-mark">H</div>
+      <div class="app-logo-text">hfinancieros<span class="muted">files</span></div>
+    </div>
+
+    <div class="login-form-wrap">
+      <h1>Acceder a su portal</h1>
+      <p>Gestión documental para clientes. Archivos de hasta 1 GB, subidos directo a Azure Blob Storage.</p>
+
+      {% if form.errors %}
+        <p class="form-error" style="margin: 0 0 16px;">Usuario o contraseña incorrectos.</p>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-field">
+          <label for="{{ form.username.id_for_label }}">Usuario</label>
+          {{ form.username }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.password.id_for_label }}">Contraseña</label>
+          {{ form.password }}
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-primary" style="width: 100%; height: 46px; margin-top: 6px;">Entrar</button>
+      </form>
+
+      <div class="login-note">
+        <div class="login-note-dot"></div>
+        <p>El acceso a Clientes, Personas y Archivos depende de los permisos asignados a su usuario.</p>
+      </div>
+    </div>
+
+    <div class="login-footer">© 2026 hfinancierosfiles</div>
+  </div>
+
+  <div class="login-side">
+    <div class="login-side-grid"></div>
+    <div class="login-side-content">
+      <div class="login-side-kicker">Subida directa a la nube</div>
+      <p class="login-side-lead">Sus archivos viajan del navegador a Azure en bloques, sin pasar por el servidor.</p>
+      <div class="login-steps">
+        <div class="login-step">
+          <span class="login-step-num mono">01</span>
+          <span class="login-step-text">Solicitud de firma temporal (SAS)</span>
+        </div>
+        <div class="login-step">
+          <span class="login-step-num mono">02</span>
+          <span class="login-step-text">Subida por bloques directa a Azure</span>
+        </div>
+        <div class="login-step">
+          <span class="login-step-num mono">03</span>
+          <span class="login-step-text">Procesamiento asíncrono y validación</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

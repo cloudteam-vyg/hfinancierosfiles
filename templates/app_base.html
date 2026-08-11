@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'files:archive-list' as archive_list_url %}
+{% url 'files:archive-upload' as archive_upload_url %}
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="app-logo">
+      <div class="app-logo-mark">H</div>
+      <div class="app-logo-text">hfinancieros<span class="muted">files</span></div>
+    </div>
+
+    <nav class="app-nav">
+      <a href="{{ dashboard_url }}" class="app-nav-item{% if request.path == dashboard_url %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+        <span>Panel</span>
+      </a>
+      <a href="{{ archive_list_url }}" class="app-nav-item{% if '/archivos/' in request.path and request.path != archive_upload_url %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path></svg>
+        <span>Archivos</span>
+      </a>
+      <a href="{{ archive_upload_url }}" class="app-nav-item{% if request.path == archive_upload_url %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
+        <span>Nuevo archivo</span>
+      </a>
+      <a href="{% url 'files:customer-list' %}" class="app-nav-item{% if '/clientes/' in request.path %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Clientes</span>
+      </a>
+      <a href="{% url 'files:person-list' %}" class="app-nav-item{% if '/personas/' in request.path %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21c0-3.3-3.6-6-8-6s-8 2.7-8 6"></path><circle cx="12" cy="8" r="4"></circle></svg>
+        <span>Personas</span>
+      </a>
+    </nav>
+
+    <div class="app-storage">
+      <div class="app-storage-label">Almacenamiento</div>
+      <div class="app-storage-value mono">{{ storage_used_gb }} GB almacenados</div>
+    </div>
+
+    <div class="app-sidebar-footer">
+      <button type="button" class="app-theme-toggle" data-theme-toggle>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"></path></svg>
+        <span data-theme-label>Modo oscuro</span>
+      </button>
+      <div class="app-user">
+        <div class="app-user-avatar">{{ user.get_full_name|default:user.get_username|slice:":2"|upper }}</div>
+        <div class="app-user-info">
+          <div class="app-user-name">{{ user.get_full_name|default:user.get_username }}</div>
+          <div class="app-user-role">
+            {% if user.is_superuser %}Administrador{% else %}{{ user.groups.all|first|default:"Sin grupo asignado" }}{% endif %}
+          </div>
+        </div>
+        <form method="post" action="{% url 'authentication:logout' %}" style="display:inline; margin-left:auto;">
+          {% csrf_token %}
+          <button type="submit" title="Salir" class="app-user-logout">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"></path><path d="M17 8.5 20.5 12 17 15.5"></path><path d="M20 12h-8"></path></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-main-inner">
+      {% block app_content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

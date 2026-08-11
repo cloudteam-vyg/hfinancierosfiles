@@ -1,0 +1,54 @@
+{% extends "app_base.html" %}
+{% block title %}Clientes{% endblock %}
+{% block app_content %}
+<div class="page-header">
+  <div>
+    <h1>Clientes</h1>
+    <p>{{ page_obj.paginator.count }} cliente{{ page_obj.paginator.count|pluralize }}</p>
+  </div>
+  {% if perms.files.add_customer %}
+    <a href="{% url 'files:customer-create' %}" class="btn btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+      <span>Nuevo cliente</span>
+    </a>
+  {% endif %}
+</div>
+
+<div class="grid-table">
+  <div class="grid-row grid-head" style="grid-template-columns: 1.6fr 1fr 1.4fr 1.2fr 100px;">
+    <div>Nombre</div>
+    <div>Grupo</div>
+    <div>Correo</div>
+    <div>Tipo de actividad</div>
+    <div></div>
+  </div>
+  {% for customer in customers %}
+  <div class="grid-row" style="grid-template-columns: 1.6fr 1fr 1.4fr 1.2fr 100px;">
+    <div class="file-name">{{ customer.name|default:"—" }}</div>
+    <div style="font-size: 13px; color: var(--muted);">{{ customer.group|default:"—" }}</div>
+    <div style="font-size: 13px; color: var(--muted);">{{ customer.email|default:"—" }}</div>
+    <div style="font-size: 13px; color: var(--muted);">{{ customer.activity_type.name }}</div>
+    <div class="row-actions" style="gap: 6px;">
+      {% if perms.files.change_customer %}
+        <a href="{% url 'files:customer-update' customer.pk %}" class="btn btn-sm">Editar</a>
+      {% endif %}
+      {% if perms.files.delete_customer %}
+        <a href="{% url 'files:customer-delete' customer.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="grid-row-empty">No hay clientes registrados.</div>
+  {% endfor %}
+</div>
+
+{% if is_paginated %}
+<div class="pagination">
+  <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  <div class="pagination-links">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">Anterior</a>{% endif %}
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">Siguiente</a>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

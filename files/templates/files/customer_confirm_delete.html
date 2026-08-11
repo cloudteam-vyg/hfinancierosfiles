@@ -1,0 +1,15 @@
+{% extends "app_base.html" %}
+{% block title %}Eliminar cliente{% endblock %}
+{% block app_content %}
+<div class="card" style="max-width: 480px;">
+  <h1 style="margin: 0 0 10px; font-size: 20px; font-weight: 600;">Eliminar cliente</h1>
+  <p style="color: var(--muted); font-size: 13.5px; line-height: 1.5;">
+    ¿Seguro que deseas eliminar <strong style="color: var(--ink);">{{ object }}</strong>? Esta acción no se puede deshacer.
+  </p>
+  <form method="post" class="form-actions">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'files:customer-list' %}" class="btn">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

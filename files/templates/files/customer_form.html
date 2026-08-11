@@ -1,0 +1,23 @@
+{% extends "app_base.html" %}
+{% block title %}{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}{% endblock %}
+{% block app_content %}
+<h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
+<div class="card" style="max-width: 560px;">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="form-field">
+        {{ field.errors }}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'files:customer-list' %}" class="btn">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

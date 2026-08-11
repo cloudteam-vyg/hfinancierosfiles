@@ -1,0 +1,69 @@
+.hf-dropzone {
+    border: 2px dashed #9CA3AF;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    max-width: 480px;
+}
+
+.hf-dropzone:focus-visible {
+    border-color: #2563EB;
+}
+
+.hf-dropzone.hf-dropzone-dragover {
+    border-color: #2563EB;
+    background: #EFF6FF;
+}
+
+.hf-dropzone-hint {
+    color: #6B7280;
+    font-size: 13px;
+    margin: 0 0 8px;
+}
+
+.hf-upload-box {
+    margin-top: 12px;
+}
+
+.hf-upload-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #E5E7EB;
+    overflow: hidden;
+}
+
+.hf-upload-fill {
+    height: 100%;
+    width: 0%;
+    background: #F59E0B;
+    transition: width 0.2s ease;
+}
+
+.hf-upload-box.hf-upload-ok .hf-upload-fill {
+    background: #16A34A;
+}
+
+.hf-upload-box.hf-upload-error .hf-upload-fill {
+    background: #DC2626;
+}
+
+.hf-upload-status {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #6B7280;
+}
+
+.hf-upload-box.hf-upload-error .hf-upload-status {
+    color: #DC2626;
+}
+
+.hf-upload-box.hf-upload-ok .hf-upload-status {
+    color: #16A34A;
+}
+
+.hf-form-errors {
+    color: #DC2626;
+    font-size: 13px;
+}

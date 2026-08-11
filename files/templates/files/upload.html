@@ -1,0 +1,93 @@
+{% extends "app_base.html" %}
+{% load static %}
+
+{% block title %}Subir archivo{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'files/css/upload_page.css' %}">
+{% endblock %}
+
+{% block app_content %}
+<a href="{% url 'files:archive-list' %}" class="upload-back">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 6l-6 6 6 6"></path></svg>
+  <span>Archivos</span>
+</a>
+<div class="page-header" style="margin-bottom: 14px;">
+  <div>
+    <h1>Nuevo archivo</h1>
+    <p>Hasta {{ max_upload_size_mb }} MB por archivo. La carga se divide en bloques y sube directo a Azure.</p>
+  </div>
+</div>
+
+<form method="post" id="hf-upload-form" novalidate>
+  {% csrf_token %}
+
+  <div class="upload-grid">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div id="hf-dropzone" class="hf-dropzone" tabindex="0"
+           data-sas-endpoint="{% url 'files:archive-upload-sas' %}"
+           data-max-upload-size-mb="{{ max_upload_size_mb }}">
+        <input type="file" id="id_upload_widget" hidden>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent);"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
+        <div style="font-size: 15px; font-weight: 500; margin-top: 14px;">Arrastre su archivo aquí</div>
+        <p class="hf-dropzone-hint" style="margin-top: 6px;">o pegue con Ctrl + V, o haga clic para seleccionarlo</p>
+        <div class="mono" style="font-size: 11px; color: var(--faint); margin-top: 18px;">Máx. {{ max_upload_size_mb }} MB</div>
+        <div class="hf-upload-box">
+          <div class="hf-upload-bar"><div class="hf-upload-fill"></div></div>
+          <div class="hf-upload-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin: 0 0 20px; font-size: 15px; font-weight: 600;">Metadatos</h2>
+
+      {{ form.file_archive_id }}
+      {{ form.original_filename }}
+      {{ form.blob_path }}
+      {{ form.file_size }}
+      {{ form.content_type }}
+
+      {% if form.non_field_errors %}
+        <ul class="hf-form-errors">
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      <div class="form-field">
+        <label for="{{ form.archive_class.id_for_label }}">Clase de archivo</label>
+        {{ form.archive_class }}
+        {{ form.archive_class.errors }}
+      </div>
+      <div class="form-field">
+        <label for="{{ form.customer.id_for_label }}">Cliente</label>
+        {{ form.customer }}
+        {{ form.customer.errors }}
+      </div>
+      <div class="form-field">
+        <label for="{{ form.name.id_for_label }}">Nombre visible</label>
+        {{ form.name }}
+        {{ form.name.errors }}
+      </div>
+      <div class="form-field">
+        <label for="{{ form.opening_date.id_for_label }}">Fecha de apertura</label>
+        {{ form.opening_date }}
+      </div>
+      <div class="form-field">
+        <label for="{{ form.due_date.id_for_label }}">Fecha de vencimiento</label>
+        {{ form.due_date }}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" id="hf-submit-btn" class="btn btn-primary" style="flex: 1; justify-content: center;" disabled>Guardar y subir</button>
+        <a href="{% url 'files:archive-list' %}" class="btn">Cancelar</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'files/js/azure_chunked_uploader.js' %}"></script>
+  <script src="{% static 'files/js/upload_page.js' %}"></script>
+{% endblock %}

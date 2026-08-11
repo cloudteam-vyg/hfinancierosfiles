@@ -1,0 +1,48 @@
+# Entornos virtuales
+.venv/
+core/.venv/
+venv/
+env/
+
+# Bytecode / cache de Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Variables de entorno y secretos (NUNCA deben entrar a la imagen)
+.env
+.env.*
+!.env.example
+
+# Bases de datos locales
+db.sqlite3
+*.sqlite3
+
+# Artefactos generados en el build, no se copian del host
+staticfiles/
+media/
+
+# Control de versiones / CI
+.git/
+.github/
+.gitignore
+
+# Herramientas de desarrollo local (no aplican dentro de la imagen)
+docker-compose.yml
+docker-compose.*.yml
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+
+# Tests / cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# NOTA: Procfile, CHECKS, app.json y requirements.txt NO están aquí a
+# propósito -- deben viajar dentro de la imagen (Dokku, con Dockerfile +
+# Procfile presentes, lee el Procfile desde dentro de la imagen construida).
