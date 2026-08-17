@@ -9,11 +9,13 @@
     var endpoint = table.dataset.statusEndpoint;
 
     function trackedRows() {
+      // data-file-id es el contrato de "fila" (mismo selector que
+      // filearchive_split.js); el header grid-head no lo lleva.
       return Array.prototype.filter.call(
-        table.querySelectorAll("tr[data-file-id]"),
+        table.querySelectorAll("[data-file-id]"),
         function (row) {
           var badge = row.querySelector(".badge");
-          return ACTIVE_STATUSES.indexOf(badge.dataset.status) !== -1;
+          return badge && ACTIVE_STATUSES.indexOf(badge.dataset.status) !== -1;
         }
       );
     }
@@ -23,6 +25,13 @@
       badge.className = "badge badge-" + info.status.toLowerCase();
       badge.dataset.status = info.status;
       badge.textContent = info.status_display;
+
+      // Refleja el cambio también en los data-* de la fila (usados por
+      // filearchive_split.js para el panel de preview) y avisa por si el
+      // panel tiene esta fila seleccionada ahora mismo.
+      row.dataset.status = info.status;
+      row.dataset.statusDisplay = info.status_display;
+      row.dispatchEvent(new CustomEvent("filearchive:status-updated", { bubbles: true }));
     }
 
     var timer = null;

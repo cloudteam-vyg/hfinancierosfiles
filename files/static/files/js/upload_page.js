@@ -1,33 +1,34 @@
 (function () {
   "use strict";
 
-  function setHidden(name, value) {
-    var el = document.getElementById("id_" + name);
-    if (el) el.value = value;
+  var utils = window.HFUtils; // ver files/static/files/js/hf_utils.js
+
+  function humanBytes(n) {
+    if (!n && n !== 0) return "";
+    var units = ["B", "KB", "MB", "GB"];
+    var i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toFixed(i === 0 ? 0 : 1) + " " + units[i];
   }
 
   function init() {
     var dropzone = document.getElementById("hf-dropzone");
     if (!dropzone) return;
 
-    var fileInput = document.getElementById("id_upload_widget");
+    var form = document.getElementById("hf-upload-form");
+    var fileInput = document.getElementById("id_file");
     var submitBtn = document.getElementById("hf-submit-btn");
     var box = dropzone.querySelector(".hf-upload-box");
     var fill = box.querySelector(".hf-upload-fill");
     var statusEl = box.querySelector(".hf-upload-status");
-
-    var cfg = {
-      endpoint: dropzone.dataset.sasEndpoint,
-      maxMb: parseInt(dropzone.dataset.maxUploadSizeMb || "1024", 10)
-    };
+    var maxMb = parseInt(dropzone.dataset.maxUploadSizeMb || "300", 10);
 
     var ui = {
       progress: function (done, total) {
         var pct = total ? Math.floor((done / total) * 100) : 0;
         fill.style.width = pct + "%";
         statusEl.textContent = "Subiendo... " + pct + "% (" +
-          window.HFAzureUploader.humanBytes(done) + " / " +
-          window.HFAzureUploader.humanBytes(total) + ")";
+          humanBytes(done) + " / " + humanBytes(total) + ")";
       },
       status: function (msg) { statusEl.textContent = msg; },
       error: function (msg) {
@@ -41,55 +42,30 @@
       }
     };
 
-    var uploading = false;
-    var controller = new AbortController();
-
-    window.addEventListener("beforeunload", function (e) {
-      if (!uploading) return;
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
-    }, { signal: controller.signal });
-
-    function startUpload(file) {
+    function setFile(file) {
       if (!file) return;
       box.classList.remove("hf-upload-error", "hf-upload-ok");
 
       if (file.size <= 0) { ui.error("El archivo está vacío."); return; }
-      if (file.size > cfg.maxMb * 1024 * 1024) {
-        ui.error("El archivo pesa " + window.HFAzureUploader.humanBytes(file.size) +
-          " y el límite es " + cfg.maxMb + " MB.");
+      if (file.size > maxMb * 1024 * 1024) {
+        ui.error("El archivo pesa " + humanBytes(file.size) + " y el límite es " + maxMb + " MB.");
         return;
       }
 
-      uploading = true;
-      submitBtn.disabled = true;
-      ["file_archive_id", "blob_path", "original_filename", "file_size", "content_type"]
-        .forEach(function (n) { setHidden(n, ""); });
-      ui.status("Solicitando autorización...");
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
 
-      window.HFAzureUploader.uploadFile(file, cfg, ui).then(function (session) {
-        setHidden("file_archive_id", session.file_archive_id);
-        setHidden("blob_path", session.blob_path);
-        setHidden("original_filename", file.name);
-        setHidden("file_size", String(file.size));
-        setHidden("content_type", file.type || "application/octet-stream");
+      var nameEl = document.getElementById("id_name");
+      if (nameEl && !nameEl.value) nameEl.value = file.name.slice(0, 150);
 
-        var nameEl = document.getElementById("id_name");
-        if (nameEl && !nameEl.value) nameEl.value = file.name.slice(0, 150);
-
-        ui.done("Archivo subido correctamente. Ya puedes guardar.");
-        submitBtn.disabled = false;
-      }).catch(function (err) {
-        ui.error(err.message || String(err));
-        submitBtn.disabled = false;
-      }).then(function () { uploading = false; });
+      ui.status("Listo: " + file.name + " (" + humanBytes(file.size) + ")");
     }
 
     // --- selección clásica ---
     dropzone.addEventListener("click", function () { fileInput.click(); });
     fileInput.addEventListener("change", function () {
-      startUpload(fileInput.files && fileInput.files[0]);
+      setFile(fileInput.files && fileInput.files[0]);
     });
 
     // --- drag & drop ---
@@ -116,7 +92,7 @@
         ui.status("Se detectaron " + files.length + " archivos; solo se " +
           "subirá el primero (" + files[0].name + "). Sube los demás por separado.");
       }
-      startUpload(files[0]);
+      setFile(files[0]);
     });
 
     // --- pegar desde el portapapeles ---
@@ -140,17 +116,46 @@
       if (!file) return; // portapapeles solo tenía texto: no hacer nada
 
       e.preventDefault();
-      startUpload(file);
-    }, { signal: controller.signal });
+      setFile(file);
+    });
 
-    window.addEventListener("pagehide", function () { controller.abort(); });
+    // --- envío por XHR: única forma de exponer progreso real de subida ---
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      box.classList.remove("hf-upload-error", "hf-upload-ok");
+      fill.style.width = "0%";
 
-    // El submit real de metadatos no debe disparar mientras la subida a
-    // Azure sigue en curso -- el botón ya está disabled durante el
-    // fetch/XHR, pero se refuerza aquí como defensa en profundidad.
-    document.getElementById("hf-upload-form").addEventListener("submit", function (e) {
-      if (uploading) { e.preventDefault(); return; }
-      submitBtn.disabled = true; // evita doble POST del formulario visible
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", form.action || window.location.href);
+      xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+      xhr.upload.addEventListener("progress", function (evt) {
+        if (evt.lengthComputable) ui.progress(evt.loaded, evt.total);
+      });
+
+      xhr.addEventListener("load", function () {
+        var data = null;
+        try { data = JSON.parse(xhr.responseText); } catch (err) { /* no-op */ }
+
+        if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
+          ui.done("Archivo subido correctamente.");
+          window.location.href = data.redirect_url;
+          return;
+        }
+
+        submitBtn.disabled = false;
+        var messages = data ? utils.formErrorMessages(data.errors) : [];
+        ui.error(messages.join(" ") || "No se pudo guardar el archivo (error del servidor).");
+      });
+
+      xhr.addEventListener("error", function () {
+        submitBtn.disabled = false;
+        ui.error("Fallo de red durante la subida. Verifica tu conexión e inténtalo de nuevo.");
+      });
+
+      xhr.send(new FormData(form));
     });
   }
 

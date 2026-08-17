@@ -32,15 +32,17 @@ RUN SECRET_KEY="build-time-placeholder" \
     DEBUG="False" \
     DATABASE_URL="postgres://build:build@localhost:5432/build" \
     ALLOWED_HOSTS="localhost" \
-    AZURE_ACCOUNT_NAME="build" \
-    AZURE_ACCOUNT_KEY="build" \
-    AZURE_CONTAINER_NAME="build" \
     CELERY_BROKER_URL="redis://localhost:6379/1" \
     CELERY_RESULT_BACKEND="redis://localhost:6379/1" \
     python manage.py collectstatic --noinput --clear
 
-RUN groupadd --system app \
-    && useradd --system --gid app --home-dir /app --no-create-home --shell /usr/sbin/nologin app \
+# UID/GID FIJOS (10001): necesario para que el volumen persistente de Dokku
+# (storage:mount en /app/media) funcione -- Dokku ya no hace chown automático
+# para apps basadas en Dockerfile desde la 0.34.0, así que el número tiene
+# que ser estable y conocido para poder hacer chown del lado del host.
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid 10001 --home-dir /app --no-create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /app/media \
     && chown -R app:app /app
 
 USER app

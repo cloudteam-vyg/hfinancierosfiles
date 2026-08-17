@@ -7,7 +7,7 @@
 <div class="page-header">
   <div>
     <h1>Archivos</h1>
-    <p>{{ page_obj.paginator.count }} archivo{{ page_obj.paginator.count|pluralize }}{% if query or status %} (filtrados){% endif %}</p>
+    <p>{{ page_obj.paginator.count }} archivo{{ page_obj.paginator.count|pluralize }}{% if query or status or opening_date_from or opening_date_to or due_date_from or due_date_to %} (filtrados){% endif %}</p>
   </div>
   {% if perms.files.add_filearchive %}
     <a href="{% url 'files:archive-upload' %}" class="btn btn-primary">
@@ -24,40 +24,86 @@
   </div>
   {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
   <noscript><button type="submit" class="btn btn-sm">Buscar</button></noscript>
+
   <div class="chip-group">
-    <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="chip{% if not status %} active{% endif %}">Todos</a>
+    <button type="submit" name="status" value="" class="chip{% if not status %} active{% endif %}">Todos</button>
     {% for value, label in status_choices %}
-      <a href="?status={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="chip{% if status == value %} active{% endif %}">{{ label }}</a>
+      <button type="submit" name="status" value="{{ value }}" class="chip{% if status == value %} active{% endif %}">{{ label }}</button>
     {% endfor %}
+  </div>
+
+  <div class="date-filters">
+    <div class="date-filter-field">
+      <label>Apertura</label>
+      <div class="date-range-inputs">
+        <input type="date" name="opening_date_from" value="{{ opening_date_from }}" aria-label="Fecha de apertura desde">
+        <span class="date-range-sep">–</span>
+        <input type="date" name="opening_date_to" value="{{ opening_date_to }}" aria-label="Fecha de apertura hasta">
+      </div>
+    </div>
+    <div class="date-filter-field">
+      <label>Vencimiento</label>
+      <div class="date-range-inputs">
+        <input type="date" name="due_date_from" value="{{ due_date_from }}" aria-label="Fecha de vencimiento desde">
+        <span class="date-range-sep">–</span>
+        <input type="date" name="due_date_to" value="{{ due_date_to }}" aria-label="Fecha de vencimiento hasta">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+    {% if query or status or opening_date_from or opening_date_to or due_date_from or due_date_to %}
+      <a href="{% url 'files:archive-list' %}" class="btn btn-sm btn-link">Limpiar filtros</a>
+    {% endif %}
   </div>
 </form>
 
-<div class="grid-table" id="hf-file-list" data-status-endpoint="{% url 'files:archive-status' %}">
-  <div class="grid-row grid-head" style="grid-template-columns: 2.4fr 1fr .9fr 1.1fr 1fr 40px;">
-    <div>Archivo</div>
-    <div>Categoría</div>
-    <div style="text-align: right;">Tamaño</div>
-    <div>Estado</div>
-    <div>Actualizado</div>
-    <div></div>
-  </div>
-  {% for obj in page_obj %}
-  <div class="grid-row" style="grid-template-columns: 2.4fr 1fr .9fr 1.1fr 1fr 40px;" data-file-id="{{ obj.pk }}">
-    <div class="file-cell">
-      <div class="file-ext">{{ obj.original_filename|slice:"-4:"|cut:"."|upper|default:"—" }}</div>
-      <div style="min-width: 0;">
-        <div class="file-name">{{ obj.name }}</div>
-        <div class="file-ref mono">{{ obj.pk|stringformat:"s"|slice:":8"|upper }}</div>
+<div class="split-view">
+  <div class="grid-table" id="hf-file-list"
+       data-status-endpoint="{% url 'files:archive-status' %}"
+       data-pdfjs-lib="{% static 'files/js/vendor/pdfjs/pdf.min.mjs' %}"
+       data-pdfjs-worker="{% static 'files/js/vendor/pdfjs/pdf.worker.min.mjs' %}"
+       data-max-preview-bytes="{{ max_preview_bytes }}"
+       data-max-pdf-bytes="{{ max_pdf_bytes }}"
+       data-pdf-page-limit="{{ pdf_page_limit }}"
+       {% if perms.files.change_filearchive %}data-can-edit{% endif %}>
+    <div class="grid-row grid-row--files grid-head">
+      <div>Nombre</div>
+      <div>Cliente</div>
+      <div>Clase de archivo</div>
+      <div>Vencimiento</div>
+      <div>Estado</div>
+      <div></div>
+    </div>
+    {% for obj in page_obj %}
+    <div class="grid-row grid-row--files" tabindex="0"
+         data-file-id="{{ obj.pk }}"
+         data-ext="{{ obj.extension|slice:'1:' }}"
+         data-name="{{ obj.name }}"
+         data-customer="{{ obj.customer.name|default:'Sin nombre' }}"
+         data-archive-class="{{ obj.archive_class }}"
+         data-size-bytes="{{ obj.file_size|default:0 }}"
+         data-size-display="{{ obj.file_size|filesizeformat }}"
+         data-status="{{ obj.upload_status }}"
+         data-status-display="{{ obj.get_upload_status_display }}"
+         data-due-date="{{ obj.due_date|date:'d M Y'|default:'—' }}"
+         data-updated="{{ obj.updated_at|date:'d M, H:i' }}"
+         data-download-url="{% url 'files:archive-download' obj.pk %}"
+         data-preview-url="{% url 'files:archive-preview' obj.pk %}"
+         data-edit-url="{% url 'files:archive-update' obj.pk %}">
+      <div class="file-cell">
+        <div class="file-ext">{{ obj.extension|slice:"1:"|upper|default:"—" }}</div>
+        <div style="min-width: 0;">
+          <div class="file-name">{{ obj.name }}</div>
+          <div class="file-ref mono">{{ obj.pk|stringformat:"s"|slice:":8"|upper }}</div>
+        </div>
       </div>
-    </div>
-    <div style="font-size: 13px; color: var(--muted);">{{ obj.archive_class }}</div>
-    <div class="mono" style="font-size: 12.5px; color: var(--muted); text-align: right;">{{ obj.file_size|filesizeformat }}</div>
-    <div>
-      <span class="badge badge-{{ obj.upload_status|lower }}" data-status="{{ obj.upload_status }}">{{ obj.get_upload_status_display }}</span>
-    </div>
-    <div style="font-size: 12.5px; color: var(--muted);">{{ obj.updated_at|date:"d M, H:i" }}</div>
-    <div class="row-actions">
-      {% if perms.files.delete_filearchive %}
+      <div style="font-size: 13px; color: var(--muted);">{{ obj.customer.name|default:"Sin nombre" }}</div>
+      <div style="font-size: 13px; color: var(--muted);">{{ obj.archive_class }}</div>
+      <div style="font-size: 12.5px; color: var(--muted);">{{ obj.due_date|date:"d M Y"|default:"—" }}</div>
+      <div>
+        <span class="badge badge-{{ obj.upload_status|lower }}" data-status="{{ obj.upload_status }}">{{ obj.get_upload_status_display }}</span>
+      </div>
+      <div class="row-actions">
+        {% if perms.files.delete_filearchive %}
         <details class="row-menu">
           <summary>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5.5" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="12" cy="18.5" r="1.2"></circle></svg>
@@ -66,12 +112,36 @@
             <a href="{% url 'files:archive-delete' obj.pk %}" class="danger">Eliminar</a>
           </div>
         </details>
-      {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="grid-row-empty">No hay archivos que coincidan con la búsqueda.</div>
+    {% endfor %}
+  </div>
+
+  <div id="preview-panel" class="preview-panel">
+    <div class="preview-empty" id="preview-empty">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg>
+      <p>Selecciona un archivo para previsualizarlo</p>
+    </div>
+    <div class="preview-content" id="preview-content" hidden>
+      <div class="preview-header">
+        <div class="preview-header-info">
+          <div class="preview-header-name" id="preview-name"></div>
+          <div class="preview-header-meta" id="preview-meta"></div>
+        </div>
+        <div class="preview-header-actions">
+          <a id="preview-download-btn" class="btn btn-sm" href="#">Descargar</a>
+          <a id="preview-edit-btn" class="btn btn-sm btn-primary" href="#" hidden>Editar</a>
+          <button type="button" class="btn btn-sm preview-drawer-close" aria-label="Cerrar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="preview-body" id="preview-body"></div>
     </div>
   </div>
-  {% empty %}
-  <div class="grid-row-empty">No hay archivos que coincidan con la búsqueda.</div>
-  {% endfor %}
 </div>
 
 {% if page_obj.has_other_pages %}
@@ -79,16 +149,24 @@
   <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
   <div class="pagination-links">
     {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm">Anterior</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if base_querystring %}&{{ base_querystring }}{% endif %}" class="btn btn-sm">Anterior</a>
     {% endif %}
     {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm">Siguiente</a>
+      <a href="?page={{ page_obj.next_page_number }}{% if base_querystring %}&{{ base_querystring }}{% endif %}" class="btn btn-sm">Siguiente</a>
     {% endif %}
   </div>
 </div>
 {% endif %}
 {% endblock %}
 
+{% block body_end %}
+  <div class="drawer-backdrop hidden" id="preview-drawer-backdrop"></div>
+{% endblock %}
+
 {% block extra_js %}
+  <script src="{% static 'files/js/hf_utils.js' %}"></script>
   <script src="{% static 'files/js/filearchive_list_poll.js' %}"></script>
+  <script src="{% static 'files/js/vendor/docx-preview.min.js' %}"></script>
+  <script src="{% static 'files/js/vendor/xlsx.full.min.js' %}"></script>
+  <script src="{% static 'files/js/filearchive_split.js' %}"></script>
 {% endblock %}

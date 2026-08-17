@@ -11,7 +11,7 @@
 
     <div class="login-form-wrap">
       <h1>Acceder a su portal</h1>
-      <p>Gestión documental para clientes. Archivos de hasta 1 GB, subidos directo a Azure Blob Storage.</p>
+      <p>Gestión documental para clientes. Archivos de hasta {{ max_upload_size_mb|default:300 }} MB, guardados de forma segura en el servidor.</p>
 
       {% if form.errors %}
         <p class="form-error" style="margin: 0 0 16px;">Usuario o contraseña incorrectos.</p>
@@ -43,20 +43,20 @@
   <div class="login-side">
     <div class="login-side-grid"></div>
     <div class="login-side-content">
-      <div class="login-side-kicker">Subida directa a la nube</div>
-      <p class="login-side-lead">Sus archivos viajan del navegador a Azure en bloques, sin pasar por el servidor.</p>
+      <div class="login-side-kicker">Subida segura al servidor</div>
+      <p class="login-side-lead">Sus archivos se validan y se guardan en el servidor, con una barra de progreso en tiempo real.</p>
       <div class="login-steps">
         <div class="login-step">
           <span class="login-step-num mono">01</span>
-          <span class="login-step-text">Solicitud de firma temporal (SAS)</span>
+          <span class="login-step-text">Subida directa al servidor</span>
         </div>
         <div class="login-step">
           <span class="login-step-num mono">02</span>
-          <span class="login-step-text">Subida por bloques directa a Azure</span>
+          <span class="login-step-text">Validación de tamaño y metadatos</span>
         </div>
         <div class="login-step">
           <span class="login-step-num mono">03</span>
-          <span class="login-step-text">Procesamiento asíncrono y validación</span>
+          <span class="login-step-text">Procesamiento asíncrono y confirmación</span>
         </div>
       </div>
     </div>

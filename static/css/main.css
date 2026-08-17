@@ -80,6 +80,19 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); }
+body.scroll-locked { overflow: hidden; }
+/* Utilidad global de visibilidad -- !important a propósito: debe ganar
+   siempre sin importar el display propio del componente (ver el patrón de
+   apertura/cierre en files/static/files/js/quick_create_modals.js y el
+   drawer móvil de /archivos/ más abajo). */
+.hidden { display: none !important; }
+/* El ATRIBUTO hidden necesita el mismo refuerzo: la regla del user-agent
+   ([hidden]{display:none}) pierde contra CUALQUIER display de autor -- un
+   elemento con class .btn (display:inline-flex) o .preview-empty
+   (display:flex) ignoraba el atributo por completo, dejando visible lo que
+   el JS creía haber ocultado (el.hidden = true). Nota: esta regla anula
+   hidden="until-found"; si algún día se necesita, excluirlo aquí. */
+[hidden] { display: none !important; }
 body {
   color: var(--ink);
   font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
@@ -249,6 +262,72 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .row-menu-content a:hover { background: var(--surface2); text-decoration: none; }
 .row-menu-content a.danger { color: var(--red); }
 
+/* =========================================================================
+   Vista master-detail de Archivos (ver files/templates/files/filearchive_list.html
+   y files/static/files/js/filearchive_split.js)
+   ========================================================================= */
+.split-view { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.split-view .grid-table { max-height: calc(100vh - 260px); overflow-y: auto; }
+
+/* Columnas: Nombre / Cliente / Clase de archivo / Vencimiento / Estado / acciones */
+.grid-row--files { grid-template-columns: 2fr 1.2fr 1fr .9fr 1fr 40px; }
+.grid-row--files[tabindex] { cursor: pointer; user-select: none; }
+.grid-row--files[tabindex]:focus-visible { outline: 2px solid var(--brand-deep); outline-offset: -2px; }
+.grid-row--files[aria-current="true"] { background: var(--brand-soft); }
+
+.preview-panel {
+  position: sticky; top: 20px; max-height: calc(100vh - 260px);
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.preview-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 40px 24px; color: var(--faint); text-align: center;
+}
+.preview-empty svg { color: var(--faint); }
+.preview-empty p { margin: 0; font-size: 13.5px; }
+.preview-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.preview-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 16px 18px; border-bottom: 1px solid var(--line2); flex: none;
+}
+.preview-header-info { min-width: 0; }
+.preview-header-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-header-meta { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.preview-header-actions { display: flex; gap: 6px; flex: none; align-items: center; }
+.preview-drawer-close { display: none; }
+.preview-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.preview-body iframe { flex: 1; width: 100%; border: none; }
+/* flex:none + max-constraints + margin:auto: no puede colapsar (el sizing
+   anterior con flex:1/height:100% era circular -- el panel desktop solo
+   tiene max-height, altura indefinida) y centra en ambos ejes dentro del
+   flex column, igual que .preview-fallback-card. */
+.preview-body img {
+  flex: none; display: block; max-width: 100%; max-height: 100%;
+  margin: auto; background: var(--surface2);
+}
+/* Páginas PDF renderizadas por PDF.js: flex items en columna con
+   overflow:auto -- sin flex:none, las 5 páginas se aplastarían para caber
+   en el viewport en vez de scrollear. */
+.preview-body canvas.preview-pdf-page { flex: none; display: block; width: 100%; height: auto; }
+.preview-body canvas.preview-pdf-page + canvas.preview-pdf-page { margin-top: 8px; }
+.preview-fallback-card { margin: auto; padding: 24px; text-align: center; max-width: 300px; }
+.preview-fallback-card .file-ext { margin: 0 auto 14px; width: 46px; height: 46px; font-size: 13px; }
+.preview-fallback-card p { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.preview-fallback-card .preview-fallback-meta { margin-top: 6px; font-size: 12px; color: var(--faint); }
+.preview-open-new { display: block; margin-top: 12px; text-align: center; font-size: 12.5px; }
+.preview-truncated-notice { flex: none; padding: 8px 14px; background: var(--warn-soft); color: var(--warn); font-size: 12px; text-align: center; }
+.preview-loading { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; color: var(--faint); font-size: 13px; }
+.preview-text {
+  flex: 1; margin: 0; padding: 16px 18px; overflow: auto;
+  white-space: pre-wrap; word-break: break-word;
+  font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.55; color: var(--ink);
+}
+
+/* Backdrop del drawer móvil -- ver templates/base.html::body_end */
+.drawer-backdrop { position: fixed; inset: 0; z-index: 890; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+.drawer-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
 /* Búsqueda + chips de filtro */
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .search-field { position: relative; flex: 1; max-width: 340px; }
@@ -267,6 +346,21 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 }
 .chip:hover { text-decoration: none; }
 .chip.active { background: var(--brand); color: var(--on-brand); }
+
+/* Filtro por rango de fechas (apertura/vencimiento), a un costado del
+   chip-group de estado -- mismo <form> (ver filearchive_list.html), así que
+   ningún filtro pisa a los demás al enviarse. */
+.date-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+.date-filter-field { display: flex; align-items: center; gap: 6px; }
+.date-filter-field label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.date-range-inputs { display: flex; align-items: center; gap: 4px; }
+.date-range-inputs input[type="date"] {
+  height: 32px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 7px;
+  background: var(--surface); color: var(--ink); font-size: 12.5px; outline: none;
+}
+.date-range-inputs input[type="date"]:hover { border-color: var(--line-hover); }
+.date-range-inputs input[type="date"]:focus { border-color: var(--brand-deep); box-shadow: 0 0 0 3px var(--brand-soft); }
+.date-range-sep { color: var(--faint); font-size: 12px; }
 
 /* Formularios */
 .form-field { margin-bottom: 16px; display: flex; flex-direction: column; gap: 7px; }
@@ -388,9 +482,6 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   background: transparent; padding: 0; color: var(--muted); font-size: 13px; cursor: pointer; text-decoration: none;
 }
 .upload-back:hover { color: var(--ink); text-decoration: none; }
-.upload-progress-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
-.upload-progress-title { padding: 14px 20px; border-bottom: 1px solid var(--line2); font-size: 13px; font-weight: 600; }
-.upload-progress-item { padding: 16px 20px; border-bottom: 1px solid var(--line2); }
 
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 1fr; }
@@ -398,4 +489,24 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   .stat-cards { grid-template-columns: repeat(2, 1fr); }
   .dash-panels, .upload-grid, .login-shell { grid-template-columns: 1fr; }
   .login-side { display: none; }
+}
+
+/* Vista master-detail de Archivos: el panel de preview se colapsa a un
+   drawer de pantalla completa (ver files/static/files/js/filearchive_split.js). */
+@media (max-width: 768px) {
+  .split-view { grid-template-columns: 1fr; }
+  .split-view .grid-table { max-height: none; overflow: visible; }
+
+  .preview-panel {
+    position: fixed; inset: auto 0 0 0; top: auto;
+    height: 100vh; height: 100dvh; max-height: none;
+    z-index: 900; border-radius: 16px 16px 0 0;
+    transform: translateY(100%); transition: transform .22s ease;
+  }
+  .preview-panel.is-open { transform: translateY(0); }
+  .preview-drawer-close { display: inline-flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-panel, .drawer-backdrop { transition: none; }
 }

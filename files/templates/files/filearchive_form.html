@@ -1,0 +1,24 @@
+{% extends "app_base.html" %}
+{% block title %}Editar archivo{% endblock %}
+{% block app_content %}
+<h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">Editar archivo</h1>
+<div class="card" style="max-width: 560px;">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="form-field">
+        {{ field.errors }}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+      </div>
+    {% endfor %}
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'files:archive-list' %}{% endif %}" class="btn">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -3,19 +3,9 @@ from celery.utils.log import get_task_logger
 from django.core.cache import cache
 from django.utils import timezone
 
-from azure.core.exceptions import HttpResponseError, ServiceRequestError, ServiceResponseError
-
 from .models import FileArchive
 
 logger = get_task_logger(__name__)
-
-AZURE_RETRYABLE_EXCEPTIONS = (
-    ServiceRequestError,
-    ServiceResponseError,
-    HttpResponseError,
-    ConnectionError,
-    TimeoutError,
-)
 
 LOCK_TIMEOUT_SECONDS = 60 * 15  # cota superior generosa de duración esperada
 
@@ -47,7 +37,7 @@ class RecordErrorOnFailureTask(Task):
 @shared_task(
     bind=True,
     base=RecordErrorOnFailureTask,
-    autoretry_for=AZURE_RETRYABLE_EXCEPTIONS,
+    autoretry_for=(OSError,),
     retry_backoff=True,
     retry_backoff_max=600,
     retry_jitter=True,
@@ -76,9 +66,8 @@ def run_post_processing(self, file_archive_id):
         # --- Punto de extensión ---
         # Aquí se agregaría lógica de negocio futura (OCR, validación de
         # contenido, notificaciones, indexado, miniaturas, etc.). Hoy es
-        # intencionalmente mínimo: el blob ya está verificado en Azure
-        # (ver FileArchiveAdminForm.clean()), solo queda confirmar el
-        # cierre del ciclo de vida.
+        # intencionalmente mínimo: el archivo ya quedó escrito en disco
+        # (obj.file.path), solo queda confirmar el cierre del ciclo de vida.
         # ---------------------------
 
         obj.upload_status = FileArchive.UploadStatus.COMPLETED
