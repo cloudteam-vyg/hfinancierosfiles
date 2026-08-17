@@ -23,10 +23,7 @@ SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS",
-    default=['localhost', '127.0.0.1', '10.0.2.2', 'hfiles-dev.cloudteam.net'],
-)
+ALLOWED_HOSTS =['hfiles-dev.cloudteam.net'],
 
 # --- Autenticación (frontend fuera del Admin) ---
 LOGIN_URL = 'authentication:login'
