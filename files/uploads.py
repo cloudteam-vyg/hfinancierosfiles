@@ -10,6 +10,7 @@ rompía ningún test.
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.defaultfilters import filesizeformat
+from django.utils import timezone
 
 from .models import FileArchive
 
@@ -31,16 +32,24 @@ def validate_upload_size(uploaded):
 
 
 def stamp_upload_metadata(obj, uploaded, user):
-    """Copia al registro los datos del archivo recibido y lo deja PENDING.
+    """Copia al registro los datos del archivo recibido y lo deja disponible.
 
     `content_type` se guarda tal como lo declaró el navegador: es dato no
     confiable y NUNCA debe usarse para servir el archivo (ver
     PREVIEWABLE_EXTENSIONS en files/views.py, que resuelve el tipo por
     extensión). Se conserva solo como información.
+
+    El archivo queda COMPLETED de inmediato: la escritura en disco es
+    síncrona, así que en cuanto esta función corre el archivo ya se puede
+    descargar y previsualizar. `upload_status` ya no se muestra en ninguna
+    parte de la interfaz; se conserva en la base de datos por si vuelve a
+    hacer falta un pipeline asíncrono (ver files/tasks.py, que sigue
+    disponible pero ya no se encola).
     """
     obj.original_filename = uploaded.name
     obj.file_size = uploaded.size
     obj.content_type = uploaded.content_type or ""
     obj.uploaded_by = user
-    obj.upload_status = FileArchive.UploadStatus.PENDING
+    obj.upload_status = FileArchive.UploadStatus.COMPLETED
+    obj.processed_at = timezone.now()
     return obj

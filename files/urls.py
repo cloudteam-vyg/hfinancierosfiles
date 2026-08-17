@@ -20,7 +20,6 @@ urlpatterns = [
     # --- Archivos (FileArchive) ---
     path("archivos/", views.file_archive_list_view, name="archive-list"),
     path("archivos/subir/", views.file_archive_upload_view, name="archive-upload"),
-    path("archivos/estado/", views.file_archive_status_view, name="archive-status"),
     path("archivos/<uuid:pk>/eliminar/", views.FileArchiveDeleteView.as_view(), name="archive-delete"),
     path("archivos/<uuid:pk>/descargar/", views.file_archive_download_view, name="archive-download"),
     path("archivos/<uuid:pk>/editar/", views.FileArchiveUpdateView.as_view(), name="archive-update"),

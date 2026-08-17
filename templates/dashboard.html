@@ -19,9 +19,9 @@
     <div class="stat-sub">{{ total_customers }} clientes · {{ total_persons }} personas</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">En procesamiento</div>
-    <div class="stat-value color-blue">{{ processing_count }}</div>
-    <div class="stat-sub">Cola de Celery activa</div>
+    <div class="stat-label">Vencen en 30 días</div>
+    <div class="stat-value color-blue">{{ expiring_soon }}</div>
+    <div class="stat-sub">Requieren seguimiento</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Volumen almacenado</div>
@@ -29,9 +29,9 @@
     <div class="stat-sub">En almacenamiento local</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Errores (24 h)</div>
-    <div class="stat-value color-red">{{ error_last_24h }}</div>
-    <div class="stat-sub">Requieren reintento</div>
+    <div class="stat-label">Vencidos</div>
+    <div class="stat-value color-red">{{ expired }}</div>
+    <div class="stat-sub">Con fecha de vencimiento pasada</div>
   </div>
 </div>
 
@@ -54,19 +54,17 @@
   </div>
 
   <div class="card">
-    <h2 style="margin: 0 0 20px; font-size: 15px; font-weight: 600;">Estado de la cola</h2>
-    {% for row in status_breakdown %}
+    <h2 style="margin: 0 0 20px; font-size: 15px; font-weight: 600;">Próximos vencimientos</h2>
+    {% for obj in upcoming %}
       <div class="queue-row">
         <div class="queue-row-head">
-          <span>{{ row.upload_status }}</span>
-          <span class="mono">{{ row.total }}</span>
+          <a href="{% url 'files:archive-list' %}?preview={{ obj.pk }}">{{ obj.name|truncatechars:32 }}</a>
+          <span class="mono">{{ obj.due_date|date:"d M Y" }}</span>
         </div>
-        <div class="queue-bar">
-          <div class="queue-bar-fill status-{{ row.upload_status|lower }}" style="width: {{ row.pct }}%;"></div>
-        </div>
+        <div style="font-size: 12px; color: var(--faint);">{{ obj.customer.name|default:"Sin nombre" }}</div>
       </div>
     {% empty %}
-      <p style="color: var(--muted); font-size: 13.5px;">Sin archivos todavía.</p>
+      <p style="color: var(--muted); font-size: 13.5px;">No hay archivos con vencimiento próximo.</p>
     {% endfor %}
     <a href="{% url 'files:archive-list' %}" class="btn" style="width: 100%; justify-content: center; margin-top: 8px;">Ver todos los archivos</a>
   </div>

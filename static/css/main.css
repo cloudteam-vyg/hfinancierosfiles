@@ -232,16 +232,6 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .file-ref { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--faint); }
 .row-actions { display: flex; justify-content: flex-end; }
 
-/* Badges de estado (píldora) */
-.badge {
-  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
-  font-size: 11.5px; font-weight: 600; letter-spacing: .01em;
-}
-.badge-pending    { background: var(--slate-soft); color: var(--slate); }
-.badge-processing { background: var(--blue-soft); color: var(--blue); }
-.badge-completed  { background: var(--green-soft); color: var(--green); }
-.badge-error      { background: var(--red-soft); color: var(--red); }
-
 /* Menú "..." por fila (details/summary nativo, sin JS) */
 .row-menu { position: relative; }
 .row-menu summary {
@@ -270,7 +260,7 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .split-view .grid-table { max-height: calc(100vh - 260px); overflow-y: auto; }
 
 /* Columnas: Nombre / Cliente / Clase de archivo / Vencimiento / Estado / acciones */
-.grid-row--files { grid-template-columns: 2fr 1.2fr 1fr .9fr 1fr 40px; }
+.grid-row--files { grid-template-columns: 2fr 1.2fr 1fr .9fr .9fr 40px; }
 .grid-row--files[tabindex] { cursor: pointer; user-select: none; }
 .grid-row--files[tabindex]:focus-visible { outline: 2px solid var(--brand-deep); outline-offset: -2px; }
 .grid-row--files[aria-current="true"] { background: var(--brand-soft); }
@@ -338,15 +328,6 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 }
 .search-field input:hover { border-color: var(--line-hover); }
 .search-field input:focus { border-color: var(--brand-deep); box-shadow: 0 0 0 3px var(--brand-soft); }
-.chip-group { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface); flex-wrap: wrap; }
-.chip {
-  height: 30px; padding: 0 12px; border: none; border-radius: 7px;
-  font-size: 12.5px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted);
-  text-decoration: none; display: inline-flex; align-items: center;
-}
-.chip:hover { text-decoration: none; }
-.chip.active { background: var(--brand); color: var(--on-brand); }
-
 /* Filtro por rango de fechas (apertura/vencimiento), a un costado del
    chip-group de estado -- mismo <form> (ver filearchive_list.html), así que
    ningún filtro pisa a los demás al enviarse. */
@@ -409,12 +390,6 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .queue-row { margin-bottom: 18px; }
 .queue-row-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
 .queue-row-head .mono { color: var(--muted); }
-.queue-bar { height: 6px; border-radius: 3px; background: var(--line2); }
-.queue-bar-fill { height: 100%; border-radius: 3px; }
-.queue-bar-fill.status-pending    { background: var(--slate); }
-.queue-bar-fill.status-processing { background: var(--blue); }
-.queue-bar-fill.status-completed  { background: var(--green); }
-.queue-bar-fill.status-error      { background: var(--red); }
 
 /* Mensajes flash */
 .messages { list-style: none; padding: 0; margin: 0 0 16px; }

@@ -7,7 +7,7 @@
 <div class="page-header">
   <div>
     <h1>Archivos</h1>
-    <p>{{ page_obj.paginator.count }} archivo{{ page_obj.paginator.count|pluralize }}{% if query or status or opening_date_from or opening_date_to or due_date_from or due_date_to %} (filtrados){% endif %}</p>
+    <p>{{ page_obj.paginator.count }} archivo{{ page_obj.paginator.count|pluralize }}{% if query or opening_date_from or opening_date_to or due_date_from or due_date_to %} (filtrados){% endif %}</p>
   </div>
   {% if perms.files.add_filearchive %}
     <a href="{% url 'files:archive-upload' %}" class="btn btn-primary">
@@ -22,15 +22,7 @@
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>
     <input type="text" name="q" value="{{ query }}" placeholder="Buscar por nombre">
   </div>
-  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
   <noscript><button type="submit" class="btn btn-sm">Buscar</button></noscript>
-
-  <div class="chip-group">
-    <button type="submit" name="status" value="" class="chip{% if not status %} active{% endif %}">Todos</button>
-    {% for value, label in status_choices %}
-      <button type="submit" name="status" value="{{ value }}" class="chip{% if status == value %} active{% endif %}">{{ label }}</button>
-    {% endfor %}
-  </div>
 
   <div class="date-filters">
     <div class="date-filter-field">
@@ -50,7 +42,7 @@
       </div>
     </div>
     <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
-    {% if query or status or opening_date_from or opening_date_to or due_date_from or due_date_to %}
+    {% if query or opening_date_from or opening_date_to or due_date_from or due_date_to %}
       <a href="{% url 'files:archive-list' %}" class="btn btn-sm btn-link">Limpiar filtros</a>
     {% endif %}
   </div>
@@ -58,7 +50,6 @@
 
 <div class="split-view">
   <div class="grid-table" id="hf-file-list"
-       data-status-endpoint="{% url 'files:archive-status' %}"
        data-pdfjs-lib="{% static 'files/js/vendor/pdfjs/pdf.min.mjs' %}"
        data-pdfjs-worker="{% static 'files/js/vendor/pdfjs/pdf.worker.min.mjs' %}"
        data-max-preview-bytes="{{ max_preview_bytes }}"
@@ -69,8 +60,8 @@
       <div>Nombre</div>
       <div>Cliente</div>
       <div>Clase de archivo</div>
+      <div>Apertura</div>
       <div>Vencimiento</div>
-      <div>Estado</div>
       <div></div>
     </div>
     {% for obj in page_obj %}
@@ -82,8 +73,6 @@
          data-archive-class="{{ obj.archive_class }}"
          data-size-bytes="{{ obj.file_size|default:0 }}"
          data-size-display="{{ obj.file_size|filesizeformat }}"
-         data-status="{{ obj.upload_status }}"
-         data-status-display="{{ obj.get_upload_status_display }}"
          data-due-date="{{ obj.due_date|date:'d M Y'|default:'—' }}"
          data-updated="{{ obj.updated_at|date:'d M, H:i' }}"
          data-download-url="{% url 'files:archive-download' obj.pk %}"
@@ -98,10 +87,8 @@
       </div>
       <div style="font-size: 13px; color: var(--muted);">{{ obj.customer.name|default:"Sin nombre" }}</div>
       <div style="font-size: 13px; color: var(--muted);">{{ obj.archive_class }}</div>
+      <div style="font-size: 12.5px; color: var(--muted);">{{ obj.opening_date|date:"d M Y"|default:"—" }}</div>
       <div style="font-size: 12.5px; color: var(--muted);">{{ obj.due_date|date:"d M Y"|default:"—" }}</div>
-      <div>
-        <span class="badge badge-{{ obj.upload_status|lower }}" data-status="{{ obj.upload_status }}">{{ obj.get_upload_status_display }}</span>
-      </div>
       <div class="row-actions">
         {% if perms.files.delete_filearchive %}
         <details class="row-menu">
@@ -165,7 +152,6 @@
 
 {% block extra_js %}
   <script src="{% static 'files/js/hf_utils.js' %}"></script>
-  <script src="{% static 'files/js/filearchive_list_poll.js' %}"></script>
   <script src="{% static 'files/js/vendor/docx-preview.min.js' %}"></script>
   <script src="{% static 'files/js/vendor/xlsx.full.min.js' %}"></script>
   <script src="{% static 'files/js/filearchive_split.js' %}"></script>

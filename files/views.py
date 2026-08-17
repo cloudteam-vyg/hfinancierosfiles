@@ -1,7 +1,6 @@
 import io
 import logging
 import posixpath
-import uuid
 from datetime import date
 
 from pypdf import PdfReader, PdfWriter
@@ -11,7 +10,6 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
-from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -24,7 +22,6 @@ from .frontend_forms import (
     FileArchiveEditForm, FileArchiveUploadForm, QuickArchiveClassForm, QuickCustomerForm,
 )
 from .models import ActivityType, ClassName, Customer, FileArchive, Person
-from .tasks import run_post_processing
 from .uploads import stamp_upload_metadata
 
 
@@ -143,7 +140,6 @@ class PersonDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 # =============================================================================
 
 FILE_ARCHIVE_PAGE_SIZE = 25
-STATUS_POLL_ID_CAP = 50
 
 # Whitelist server-side por extensión -- nunca se confía en obj.content_type
 # (dato del navegador de quien subió el archivo). Todo lo que no esté aquí
@@ -330,12 +326,8 @@ def _read_file_archive_filters(request):
     Devuelve un dict con los valores YA validados: los inválidos quedan
     vacíos para no re-mostrarlos en el formulario ni pasarlos al ORM.
     """
-    status = (request.GET.get("status") or "").strip().upper()
-    if status not in set(FileArchive.UploadStatus.values):
-        status = ""
     return {
         "query": (request.GET.get("q") or "").strip(),
-        "status": status,
         "opening_date_from": _parse_date_param(request, "opening_date_from"),
         "opening_date_to": _parse_date_param(request, "opening_date_to"),
         "due_date_from": _parse_date_param(request, "due_date_from"),
@@ -347,8 +339,6 @@ def _apply_file_archive_filters(qs, filters):
     """Aplica los filtros ya validados al queryset (acumulativos)."""
     if filters["query"]:
         qs = qs.filter(name__icontains=filters["query"])
-    if filters["status"]:
-        qs = qs.filter(upload_status=filters["status"])
 
     for key, lookup in (
         ("opening_date_from", "opening_date__gte"),
@@ -388,8 +378,6 @@ def file_archive_list_view(request):
     return render(request, "files/filearchive_list.html", {
         "page_obj": page,
         "query": filters["query"],
-        "status": filters["status"],
-        "status_choices": FileArchive.UploadStatus.choices,
         "base_querystring": _querystring_without_page(request),
         # Los mismos topes que aplica el servidor, para que el JS no pida una
         # preview condenada a 404 -- y para que no puedan desincronizarse
@@ -400,49 +388,6 @@ def file_archive_list_view(request):
         "pdf_page_limit": PDF_PREVIEW_PAGE_LIMIT,
         **dates,
     })
-
-
-def _parse_uuid_list(raw_value, cap):
-    """Convierte "id1,id2,..." en UUIDs válidos, descartando el resto.
-
-    El descarte es SILENCIOSO a propósito (no se loguea): el parámetro lo
-    controla el cliente, así que registrar cada id malformado permitiría a
-    cualquiera inundar los logs con una sola petición. El tope es
-    independiente de la paginación del cliente y protege contra una query
-    string armada a mano con miles de ids.
-    """
-    valid = []
-    for raw in raw_value.split(","):
-        raw = raw.strip()
-        if not raw:
-            continue
-        try:
-            valid.append(uuid.UUID(raw))
-        except ValueError:
-            continue
-        if len(valid) >= cap:
-            break
-    return valid
-
-
-@login_required
-def file_archive_status_view(request):
-    valid_ids = _parse_uuid_list(request.GET.get("ids") or "", STATUS_POLL_ID_CAP)
-
-    rows = FileArchive.objects.filter(pk__in=valid_ids).values(
-        "pk", "upload_status", "error_message"
-    )
-    data = {
-        str(row["pk"]): {
-            "status": row["upload_status"],
-            "status_display": FileArchive.UploadStatus(row["upload_status"]).label,
-            "error_message": row["error_message"] or "",
-        }
-        for row in rows
-    }
-    response = JsonResponse(data)
-    response["Cache-Control"] = "no-store"
-    return response
 
 
 def _upload_page_context(form):
@@ -457,14 +402,15 @@ def _upload_page_context(form):
 
 
 def _create_file_archive(form, uploaded, user):
-    """Persiste el registro y encola su post-procesamiento."""
-    obj = stamp_upload_metadata(form.save(commit=False), uploaded, user)
+    """Persiste el registro. El archivo queda disponible de inmediato.
 
-    with transaction.atomic():
-        obj.save()
-        # on_commit: el worker no debe ver la fila antes de que la
-        # transacción confirme (evita un DoesNotExist intermitente).
-        transaction.on_commit(lambda: run_post_processing.delay(str(obj.pk)))
+    Ya no se encola nada en Celery: la escritura en disco es síncrona y no
+    hay trabajo pesado que diferir, así que un archivo nunca queda "en
+    proceso". `files/tasks.py::run_post_processing` sigue existiendo por si
+    vuelve a hacer falta un pipeline asíncrono.
+    """
+    obj = stamp_upload_metadata(form.save(commit=False), uploaded, user)
+    obj.save()
     return obj
 
 

@@ -149,8 +149,7 @@
     function populateHeader(row) {
       nameEl.textContent = row.dataset.name || "";
       metaEl.textContent = [
-        row.dataset.customer, row.dataset.archiveClass,
-        row.dataset.sizeDisplay, row.dataset.statusDisplay,
+        row.dataset.customer, row.dataset.archiveClass, row.dataset.sizeDisplay,
       ].filter(Boolean).join(" · ");
 
       downloadBtn.href = row.dataset.downloadUrl;
@@ -609,11 +608,6 @@
         var next = e.key === "ArrowDown" ? all[idx + 1] : all[idx - 1];
         if (next) selectRow(next);
       }
-    });
-
-    // Refresca el panel si el poll de estado actualiza la fila seleccionada.
-    list.addEventListener("filearchive:status-updated", function (e) {
-      if (selectedRow && e.target === selectedRow) populateHeader(selectedRow);
     });
 
     // --- deep link ?preview=<uuid> -----------------------------------------

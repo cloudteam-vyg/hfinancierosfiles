@@ -1,8 +1,9 @@
 # HFinancieros Files
 
 Backoffice Django para la gestión documental de clientes: subida de archivos
-de hasta 300 MB, previsualización en el navegador, control de acceso por
-permisos y post-procesamiento asíncrono con Celery.
+de hasta 300 MB, previsualización en el navegador y control de acceso por
+permisos. La subida es síncrona: el archivo queda disponible en cuanto
+termina de subirse, sin estados intermedios ni colas.
 
 Los archivos se guardan en **disco local** (un volumen persistente de Dokku en
 producción), nunca en un bucket externo, y se sirven siempre a través de vistas
@@ -16,7 +17,7 @@ autenticadas de Django — `MEDIA_URL` no se expone públicamente.
 |---|---|
 | Backend | Django 4.2 (Python 3.11) |
 | Base de datos | PostgreSQL (vía `DATABASE_URL`) |
-| Cola / cache | Celery + Redis (dos bases lógicas: cache y broker) |
+| Cache | Redis (Celery queda instalado pero hoy no se usa) |
 | Servidor | Gunicorn con workers `gevent` |
 | Estáticos | WhiteNoise (`CompressedManifestStaticFilesStorage`) |
 | Frontend | Django Templates + JavaScript plano, **sin build step** |
@@ -51,15 +52,9 @@ python manage.py collectstatic --noinput
 python manage.py runserver
 ```
 
-Para que el post-procesamiento de archivos avance, hace falta Redis y un worker:
-
-```bash
-redis-server                                   # en otra terminal
-celery -A core worker --loglevel=info --pool=gevent
-```
-
-Sin el worker la aplicación funciona igual, pero los archivos se quedan en
-estado `Pendiente`.
+No hace falta levantar Celery: la aplicación no encola nada. La
+infraestructura (`files/tasks.py`, el proceso `worker` del Procfile) se
+conserva por si más adelante se necesita trabajo pesado en segundo plano.
 
 ### Variables de entorno
 
@@ -115,7 +110,8 @@ intercepta con `XMLHttpRequest` para mostrar **barra de progreso real**;
   inserta la opción creada en el `<select>` y la deja seleccionada, **sin
   recargar la página ni perder lo ya escrito** en el formulario principal.
 - Al guardar, la respuesta es JSON (`{"success": true, "redirect_url": …}`)
-  cuando la petición es AJAX, o una redirección clásica si no lo es.
+  cuando la petición es AJAX, o una redirección clásica si no lo es. El
+  archivo queda disponible de inmediato: no hay estado "pendiente".
 
 ### Vista dividida con previsualización — `/archivos/`
 
@@ -157,14 +153,13 @@ queda en blanco ni vuelca errores a la consola.
 
 ### Filtros del listado
 
-Búsqueda por nombre, estado de procesamiento y **rangos de fechas** de apertura
-y vencimiento, todos combinables. Los filtros conviven en un único formulario,
+Búsqueda por nombre y **rangos de fechas** de apertura y vencimiento, todos
+combinables. Los filtros conviven en un único formulario,
 así que aplicar uno nunca descarta los demás, y la paginación los conserva.
 
 | Parámetro | Ejemplo |
 |---|---|
 | `q` | `?q=convenio` |
-| `status` | `?status=COMPLETED` |
 | `opening_date_from` / `opening_date_to` | `?opening_date_from=2025-01-01` |
 | `due_date_from` / `due_date_to` | `?due_date_to=2025-12-31` |
 | `preview` | `?preview=<uuid>` (selecciona una fila) |
@@ -183,7 +178,6 @@ vuelve a mostrar en el formulario.
 | GET/POST | `/login/`, `/logout/` | `authentication:*` | Acceso |
 | GET | `/archivos/` | `files:archive-list` | Vista dividida con filtros |
 | GET/POST | `/archivos/subir/` | `files:archive-upload` | Subida |
-| GET | `/archivos/estado/?ids=…` | `files:archive-status` | Sondeo de estado (JSON) |
 | GET | `/archivos/<uuid>/preview/` | `files:archive-preview` | Contenido para el visor |
 | GET | `/archivos/<uuid>/descargar/` | `files:archive-download` | Descarga del original |
 | GET/POST | `/archivos/<uuid>/editar/` | `files:archive-update` | Edición de metadatos |

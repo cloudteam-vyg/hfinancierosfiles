@@ -341,13 +341,11 @@ class FileArchiveListDateFilterTests(ArchiveFixtureTestCase):
             archive_class=cls.archive_class, customer=cls.customer, name="viejo",
             file=SimpleUploadedFile("viejo.pdf", b"x"), original_filename="viejo.pdf",
             opening_date="2024-01-01", due_date="2024-06-01",
-            upload_status=FileArchive.UploadStatus.COMPLETED,
         )
         cls.new = FileArchive.objects.create(
             archive_class=cls.archive_class, customer=cls.customer, name="nuevo",
             file=SimpleUploadedFile("nuevo.pdf", b"x"), original_filename="nuevo.pdf",
             opening_date="2025-06-01", due_date="2025-12-01",
-            upload_status=FileArchive.UploadStatus.ERROR,
         )
 
     def setUp(self):
@@ -368,12 +366,12 @@ class FileArchiveListDateFilterTests(ArchiveFixtureTestCase):
         })
         self.assertEqual(self._names(resp), {"viejo"})
 
-    def test_date_filter_combines_with_status_without_resetting_it(self):
+    def test_filters_combine_without_resetting_each_other(self):
         resp = self.client.get(reverse("files:archive-list"), {
-            "status": "ERROR", "opening_date_from": "2025-01-01",
+            "q": "nuevo", "opening_date_from": "2025-01-01",
         })
         self.assertEqual(self._names(resp), {"nuevo"})
-        self.assertEqual(resp.context["status"], "ERROR")
+        self.assertEqual(resp.context["query"], "nuevo")
         self.assertEqual(resp.context["opening_date_from"], "2025-01-01")
 
     def test_invalid_date_param_is_ignored_not_500(self):
@@ -384,11 +382,18 @@ class FileArchiveListDateFilterTests(ArchiveFixtureTestCase):
 
     def test_base_querystring_preserves_date_filters_for_pagination(self):
         resp = self.client.get(reverse("files:archive-list"), {
-            "status": "ERROR", "due_date_from": "2025-01-01",
+            "q": "nuevo", "due_date_from": "2025-01-01",
         })
         qs = resp.context["base_querystring"]
-        self.assertIn("status=ERROR", qs)
+        self.assertIn("q=nuevo", qs)
         self.assertIn("due_date_from=2025-01-01", qs)
+
+    def test_list_page_shows_no_processing_status(self):
+        # Guardia: el estado de procesamiento ya no debe aparecer en la
+        # interfaz -- ni como columna, ni como filtro, ni como badge.
+        html = self.client.get(reverse("files:archive-list")).content.decode()
+        for token in ("Pendiente", "Procesando", "badge-", "name=\"status\""):
+            self.assertNotIn(token, html)
 
 
 class FileArchiveUploadValidationTests(ArchiveFixtureTestCase):

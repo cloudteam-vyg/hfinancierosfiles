@@ -23,12 +23,18 @@ def healthz(request):
 @login_required
 def dashboard(request):
     now = timezone.now()
-    status_breakdown = list(
-        FileArchive.objects.values('upload_status')
-        .annotate(total=Count('id')).order_by('upload_status')
+    today = now.date()
+    # El estado de procesamiento ya no se muestra en ninguna parte (la subida
+    # es síncrona: el archivo queda disponible al instante). En su lugar el
+    # panel resume lo que sí importa del expediente: vencimientos.
+    expiring_soon = FileArchive.objects.filter(
+        due_date__gte=today, due_date__lte=today + datetime.timedelta(days=30),
+    ).count()
+    expired = FileArchive.objects.filter(due_date__lt=today).count()
+    upcoming = list(
+        FileArchive.objects.filter(due_date__gte=today)
+        .select_related("customer").order_by("due_date")[:6]
     )
-    total_files = sum(row['total'] for row in status_breakdown)
-    by_status = {row['upload_status']: row['total'] for row in status_breakdown}
 
     counts_by_day = dict(
         FileArchive.objects.filter(uploaded_at__gte=now - datetime.timedelta(days=UPLOADS_CHART_DAYS - 1))
@@ -37,7 +43,6 @@ def dashboard(request):
         .annotate(total=Count('id'))
         .values_list('day', 'total')
     )
-    today = now.date()
     days = [today - datetime.timedelta(days=offset) for offset in range(UPLOADS_CHART_DAYS - 1, -1, -1)]
     max_count = max(counts_by_day.values(), default=0) or 1
     uploads_by_day = [
@@ -53,16 +58,10 @@ def dashboard(request):
     context = {
         'total_customers': Customer.objects.count(),
         'total_persons': Person.objects.count(),
-        'total_files': total_files,
-        'processing_count': by_status.get(FileArchive.UploadStatus.PROCESSING, 0),
-        'error_last_24h': FileArchive.objects.filter(
-            upload_status=FileArchive.UploadStatus.ERROR,
-            updated_at__gte=now - datetime.timedelta(hours=24),
-        ).count(),
-        'status_breakdown': [
-            {**row, 'pct': round(row['total'] / total_files * 100) if total_files else 0}
-            for row in status_breakdown
-        ],
+        'total_files': FileArchive.objects.count(),
+        'expiring_soon': expiring_soon,
+        'expired': expired,
+        'upcoming': upcoming,
         'uploads_by_day': uploads_by_day,
     }
     return render(request, 'dashboard.html', context)
