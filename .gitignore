@@ -20,6 +20,9 @@ __pycache__/
 db.sqlite3
 *.sqlite3
 
+# Snapshots de Redis creados al correr redis-server desde la raíz
+*.rdb
+
 # Archivos estáticos generados (se regeneran con collectstatic)
 staticfiles/
 media/
@@ -47,3 +50,5 @@ build/
 .claude
 CLAUDE.md
 CHECKS
+DEPLOY.md
+ARCHITECTURE.md

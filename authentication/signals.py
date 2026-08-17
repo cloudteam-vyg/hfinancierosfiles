@@ -15,15 +15,16 @@ MANAGED_MODELS = (
     ("files", "customer"),
     ("files", "person"),
     ("files", "filearchive"),
+    ("files", "archiveclass"),
 )
 MANAGED_PERMISSION_PREFIXES = ("add", "change")  # explícitamente SIN "delete" ni "view"
 
 
 def ensure_standard_group():
     """Crea (si falta) el grupo STANDARD_GROUP_NAME y fija su conjunto de
-    permisos de forma idempotente (add/change sobre Customer, Person y
-    FileArchive, nunca delete). Llamarlo N veces da siempre el mismo
-    resultado, ya que usa .set() en vez de .add().
+    permisos de forma idempotente (add/change sobre Customer, Person,
+    FileArchive y ArchiveClass, nunca delete). Llamarlo N veces da siempre el
+    mismo resultado, ya que usa .set() en vez de .add().
 
     Devuelve el Group si tuvo éxito, o None si algún ContentType/Permission
     todavía no existe (p. ej. las migraciones de `files` no han corrido) --

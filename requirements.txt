@@ -1,25 +1,38 @@
+# --- Núcleo ---
 django==4.2.30
-django-admin-interface==0.32.0
-django-admin-rangefilter==0.12.4
-django-autocomplete-light==3.11.0
-django-simple-history==3.10.1
-django-environ==0.12.0
-pymysql==1.1.1
-cryptography==44.0.2
+django-environ==0.12.0          # settings desde .env
+psycopg2-binary                 # driver PostgreSQL (DATABASE_URL)
+
+# --- Servidor / estáticos ---
 gunicorn==21.2.0
-gevent==24.2.1
-djangorestframework==3.15.1
-django-rest-authtoken==2.1.4
-django-cors-headers==4.3.1
-djangorestframework-simplejwt ==5.3.1
-django-import-export==4.1.1
-whitenoise==6.6.0
-django-redis==5.4.0
+gevent==24.2.1                  # worker class (ver Procfile)
+whitenoise==6.6.0               # sirve /static/ en producción
+
+# --- Procesamiento asíncrono ---
 celery[redis]==5.6.3
-redis>=4.5.2,!=4.5.5,!=5.0.2,<6.5
-firebase-admin==6.5.0
-openpyxl==3.1.2
-xhtml2pdf==0.2.16
-django-filter==25.1
-psycopg2-binary
-azure-storage-blob==12.14.0
+redis>=4.5.2,!=4.5.5,!=5.0.2,<6.5   # se excluyen versiones con bugs conocidos
+django-redis==5.4.0             # backend de cache (CACHES)
+
+# --- Dominio ---
+pypdf==6.15.0                   # trunca PDFs a N páginas para la preview
+django-simple-history==3.10.1   # auditoría de FileArchive
+
+# --- Admin ---
+django-admin-interface==0.32.0  # arrastra django-colorfield (INSTALLED_APPS)
+django-admin-rangefilter==0.12.4
+
+# --- Pendiente de decisión: instalado pero SIN usar en el código ---
+# El stack de API REST nunca se cableó: no está en INSTALLED_APPS ni se
+# importa en ninguna parte. Descomentar si se construye la API; borrar
+# estas líneas si se descarta. Ver README.md ("Dependencias sin usar").
+# djangorestframework==3.15.1
+# djangorestframework-simplejwt==5.3.1
+# django-rest-authtoken==2.1.4
+# django-cors-headers==4.3.1
+# django-filter==25.1
+#
+# Soporte MySQL: hoy DATABASE_URL apunta a PostgreSQL. Descomentar ambos si
+# algún despliegue lo necesita (cryptography es la dependencia de pymysql
+# para caching_sha2_password).
+# pymysql==1.1.1
+# cryptography==44.0.2

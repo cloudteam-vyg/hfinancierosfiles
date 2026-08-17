@@ -15,19 +15,18 @@
 <div class="page-header" style="margin-bottom: 14px;">
   <div>
     <h1>Nuevo archivo</h1>
-    <p>Hasta {{ max_upload_size_mb }} MB por archivo. La carga se divide en bloques y sube directo a Azure.</p>
+    <p>Hasta {{ max_upload_size_mb }} MB por archivo. Se guarda en el servidor y se procesa en segundo plano.</p>
   </div>
 </div>
 
-<form method="post" id="hf-upload-form" novalidate>
+<form method="post" id="hf-upload-form" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
 
   <div class="upload-grid">
     <div style="display: flex; flex-direction: column; gap: 14px;">
       <div id="hf-dropzone" class="hf-dropzone" tabindex="0"
-           data-sas-endpoint="{% url 'files:archive-upload-sas' %}"
            data-max-upload-size-mb="{{ max_upload_size_mb }}">
-        <input type="file" id="id_upload_widget" hidden>
+        {{ form.file }}
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--brand-ink);"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
         <div style="font-size: 15px; font-weight: 500; margin-top: 14px;">Arrastre su archivo aquí</div>
         <p class="hf-dropzone-hint" style="margin-top: 6px;">o pegue con Ctrl + V, o haga clic para seleccionarlo</p>
@@ -42,12 +41,6 @@
     <div class="card">
       <h2 style="margin: 0 0 20px; font-size: 15px; font-weight: 600;">Metadatos</h2>
 
-      {{ form.file_archive_id }}
-      {{ form.original_filename }}
-      {{ form.blob_path }}
-      {{ form.file_size }}
-      {{ form.content_type }}
-
       {% if form.non_field_errors %}
         <ul class="hf-form-errors">
           {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
@@ -56,12 +49,18 @@
 
       <div class="form-field">
         <label for="{{ form.archive_class.id_for_label }}">Clase de archivo</label>
-        {{ form.archive_class }}
+        <div class="field-with-action">
+          {{ form.archive_class }}
+          <button type="button" class="btn btn-sm" data-modal-open="archive-class-modal">+ Nueva</button>
+        </div>
         {{ form.archive_class.errors }}
       </div>
       <div class="form-field">
         <label for="{{ form.customer.id_for_label }}">Cliente</label>
-        {{ form.customer }}
+        <div class="field-with-action">
+          {{ form.customer }}
+          <button type="button" class="btn btn-sm" data-modal-open="customer-modal">+ Nuevo</button>
+        </div>
         {{ form.customer.errors }}
       </div>
       <div class="form-field">
@@ -79,15 +78,82 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" id="hf-submit-btn" class="btn btn-primary" style="flex: 1; justify-content: center;" disabled>Guardar y subir</button>
+        <button type="submit" id="hf-submit-btn" class="btn btn-primary" style="flex: 1; justify-content: center;">Guardar y subir</button>
         <a href="{% url 'files:archive-list' %}" class="btn">Cancelar</a>
       </div>
     </div>
   </div>
 </form>
+
+<!-- Modal: nuevo cliente -->
+<div class="modal-overlay hidden" id="customer-modal">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="customer-modal-title">
+    <div class="hf-modal-header">
+      <h3 id="customer-modal-title">Nuevo cliente</h3>
+      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
+    </div>
+    <form id="quick-customer-form" class="hf-modal-body" novalidate
+          data-quick-create-url="{% url 'files:customer-quick-create' %}"
+          data-target-select="id_customer">
+      {% csrf_token %}
+      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
+      <div class="form-field">
+        <label for="qc-name">Nombre</label>
+        <input type="text" id="qc-name" name="name" maxlength="100" required>
+      </div>
+      <div class="form-field">
+        <label for="qc-classname">Clase de cliente</label>
+        <select id="qc-classname" name="classname" required>
+          <option value="">---------</option>
+          {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="qc-activity-type">Tipo de actividad</label>
+        <select id="qc-activity-type" name="activity_type" required>
+          <option value="">---------</option>
+          {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="qc-date-of-constitution">Fecha de constitución</label>
+        <input type="date" id="qc-date-of-constitution" name="date_of_constitution" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear cliente</button>
+        <button type="button" class="btn" data-modal-close>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: nueva clase de archivo -->
+<div class="modal-overlay hidden" id="archive-class-modal">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="archive-class-modal-title">
+    <div class="hf-modal-header">
+      <h3 id="archive-class-modal-title">Nueva clase de archivo</h3>
+      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
+    </div>
+    <form id="quick-archive-class-form" class="hf-modal-body" novalidate
+          data-quick-create-url="{% url 'files:archive-class-quick-create' %}"
+          data-target-select="id_archive_class">
+      {% csrf_token %}
+      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
+      <div class="form-field">
+        <label for="qac-name">Nombre</label>
+        <input type="text" id="qac-name" name="name" maxlength="100" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear clase</button>
+        <button type="button" class="btn" data-modal-close>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'files/js/azure_chunked_uploader.js' %}"></script>
+  <script src="{% static 'files/js/hf_utils.js' %}"></script>
   <script src="{% static 'files/js/upload_page.js' %}"></script>
+  <script src="{% static 'files/js/quick_create_modals.js' %}"></script>
 {% endblock %}

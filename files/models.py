@@ -1,9 +1,14 @@
+import os
 import uuid
 from django.conf import settings
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from . import azure_client
+
+def file_archive_upload_to(instance, filename):
+    # Subcarpeta por UUID: evita colisiones entre archivos de distintos
+    # clientes/clases con el mismo nombre.
+    return f"file_archives/{instance.id}/{filename}"
 
 class ClassName(models.Model):
     name = models.CharField(max_length=100)
@@ -88,13 +93,13 @@ class FileArchive(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='file_archives', verbose_name="Cliente")
     name = models.CharField(verbose_name="Nombre del archivo", max_length=150)
 
-    # Poblados por el flujo de subida directa navegador -> Azure (ver
-    # files/forms.py y files/admin.py). No son editable=False: el ModelForm
-    # del Admin los necesita como campos ocultos reales al dar de alta. La
-    # protección contra edición manual posterior vive en el ModelAdmin
-    # (readonly_fields en el form de edición), no en el modelo.
+    # Poblados por el flujo de subida (ver files/forms.py, files/frontend_forms.py
+    # y files/admin.py). `file` es un FileField real: Django lo asigna solo
+    # durante la validación del ModelForm (_post_clean), no hace falta código
+    # manual para guardarlo. La protección contra edición manual posterior
+    # vive en el ModelAdmin (readonly_fields en el form de edición).
+    file = models.FileField(verbose_name="Archivo", upload_to=file_archive_upload_to, max_length=255, blank=True)
     original_filename = models.CharField(verbose_name="Nombre original", max_length=255, blank=True)
-    blob_path = models.CharField(verbose_name="Ruta en Azure Blob", max_length=512, unique=True, blank=True)
     file_size = models.BigIntegerField(verbose_name="Tamaño (Bytes)", null=True, blank=True)
     content_type = models.CharField(verbose_name="Tipo MIME", max_length=100, blank=True)
 
@@ -126,22 +131,14 @@ class FileArchive(models.Model):
     def __str__(self):
         return f"{self.name} - {self.customer.name}"
 
-    def save(self, *args, **kwargs):
-        if not self.blob_path:
-            self.blob_path = azure_client.build_blob_path(self.id, self.original_filename)
-        super().save(*args, **kwargs)
-
-    def get_download_url(self):
-        """Genera una URL firmada de lectura temporal.
-
-        No exige upload_status == COMPLETED: por construcción nunca existe
-        una fila sin que el blob ya esté verificado en Azure (ver
-        FileArchiveAdminForm.clean()). upload_status describe únicamente el
-        post-procesamiento, no la disponibilidad del archivo.
-        """
-        if not self.blob_path:
-            return None
-        return azure_client.build_download_sas_url(self.blob_path, self.original_filename)
+    @property
+    def extension(self):
+        # Usada por la vista de previsualización (whitelist server-side, ver
+        # files/views.py::PREVIEWABLE_EXTENSIONS) y por el template de lista
+        # -- nunca por content_type, que es dato del navegador de quien subió
+        # el archivo y no es de confiar.
+        name = self.original_filename or self.file.name
+        return os.path.splitext(name)[1].lower()
 
     class Meta:
         verbose_name = "3 - Archivo"

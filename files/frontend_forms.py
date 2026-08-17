@@ -1,75 +1,81 @@
-"""Formularios del frontend público (fuera de /admin/).
-
-FileArchiveUploadForm intencionalmente NO reutiliza FileArchiveAdminForm
-(files/forms.py): esa clase está acoplada a modelform_factory/
-ModelAdmin.get_fields() y a la lógica de "quitar upload_widget en edición"
-que no aplica aquí (esta vista solo crea, nunca edita). La lógica de
-negocio en clean() SÍ es una copia intencional de
-FileArchiveAdminForm.clean() -- files/forms.py no se modifica, así que no
-hay forma de compartir ese método sin tocarlo. Si esa restricción se
-levanta algún día, ambos clean() deberían delegar en un validador común en
-azure_client.py.
-"""
 from django import forms
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.db.models import Q
 
-from . import azure_client
-from .models import FileArchive
+from .models import ArchiveClass, Customer, FileArchive
+from .uploads import validate_upload_size
+
+DATE_INPUT = forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
 
 
 class FileArchiveUploadForm(forms.ModelForm):
-    file_archive_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
+    class Meta:
+        model = FileArchive
+        fields = ("archive_class", "customer", "name", "opening_date", "due_date", "file")
+        widgets = {
+            "file": forms.ClearableFileInput(attrs={"hidden": True}),
+            "opening_date": DATE_INPUT,
+            "due_date": DATE_INPUT,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # FileArchive.file es blank=True (el form de edición lo excluye), así
+        # que el ModelForm lo haría opcional: enviar la subida sin archivo
+        # llegaba a la vista con cleaned_data["file"] = None y reventaba en
+        # uploaded.name (500). Aquí sí es obligatorio.
+        self.fields["file"].required = True
+        self.fields["file"].error_messages["required"] = "Selecciona un archivo para subir."
+
+    def clean_file(self):
+        uploaded = self.cleaned_data.get("file")
+        if uploaded:
+            validate_upload_size(uploaded)
+        return uploaded
+
+
+class FileArchiveEditForm(forms.ModelForm):
+    """Edición de metadatos desde /archivos/<id>/editar/.
+
+    Excluye `file` a propósito: el archivo subido es inmutable después de
+    la subida (mismo criterio que READONLY_ON_EDIT en files/admin.py) --
+    reemplazarlo es borrar y volver a subir, no un campo de este form.
+    """
 
     class Meta:
         model = FileArchive
-        fields = (
-            "archive_class", "customer", "name", "opening_date", "due_date",
-            "original_filename", "blob_path", "file_size", "content_type",
+        fields = ("archive_class", "customer", "name", "opening_date", "due_date")
+        widgets = {"opening_date": DATE_INPUT, "due_date": DATE_INPUT}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customer.__str__ toca self.activity_type.name -- sin esto, cada
+        # opción del <select> dispara una query aparte (N+1).
+        self.fields["customer"].queryset = (
+            Customer.objects.select_related("activity_type").order_by("name")
         )
-        widgets = {
-            "original_filename": forms.HiddenInput,
-            "blob_path": forms.HiddenInput,
-            "file_size": forms.HiddenInput,
-            "content_type": forms.HiddenInput,
-        }
 
-    def clean(self):
-        cleaned = super().clean()
-        file_id = cleaned.get("file_archive_id")
-        blob_path = cleaned.get("blob_path")
-        original_filename = cleaned.get("original_filename")
-        file_size = cleaned.get("file_size")
 
-        if not (file_id and blob_path and original_filename and file_size):
-            raise ValidationError(
-                "Debes seleccionar un archivo y esperar a que termine de subirse antes de guardar."
-            )
+class QuickCustomerForm(forms.ModelForm):
+    """Alta mínima de Customer desde el modal "+ Nuevo" de /archivos/subir/.
 
-        if blob_path != azure_client.build_blob_path(file_id, original_filename):
-            raise ValidationError("La ruta del archivo no es válida.")
+    classname/activity_type/date_of_constitution son NOT NULL en el modelo
+    (ver files/models.py) -- no son opcionales aquí solo por comodidad del
+    modal, el ModelForm los exige igual que cualquier alta de Customer.
+    """
 
-        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-        if file_size <= 0 or file_size > max_bytes:
-            raise ValidationError(
-                f"El tamaño declarado está fuera del límite de {settings.MAX_UPLOAD_SIZE_MB} MB."
-            )
+    class Meta:
+        model = Customer
+        fields = ("name", "classname", "activity_type", "date_of_constitution")
+        widgets = {"date_of_constitution": DATE_INPUT}
 
-        if FileArchive.objects.filter(Q(pk=file_id) | Q(blob_path=blob_path)).exists():
-            raise ValidationError("Este archivo ya fue registrado.")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A diferencia del alta completa (CustomerCreateView), aquí "name"
+        # sí es obligatorio: es lo único que identifica al cliente en el
+        # <select> del formulario de subida.
+        self.fields["name"].required = True
 
-        props = azure_client.get_uploaded_blob_properties(blob_path)
-        if props is None:
-            raise ValidationError(
-                "El archivo no se encuentra en Azure: la subida no terminó correctamente. "
-                "Vuelve a seleccionarlo e inténtalo de nuevo."
-            )
-        if props.size != file_size:
-            raise ValidationError(
-                f"El tamaño en Azure ({props.size} bytes) no coincide con el declarado "
-                f"({file_size} bytes). Vuelve a subir el archivo."
-            )
 
-        self._azure_props = props
-        return cleaned
+class QuickArchiveClassForm(forms.ModelForm):
+    class Meta:
+        model = ArchiveClass
+        fields = ("name",)
