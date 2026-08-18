@@ -30,6 +30,30 @@ ALLOWED_HOSTS = env.list(
     default=["hfiles-dev.cloudteam.net", "localhost", "127.0.0.1"],
 )
 
+# --- Detrás del proxy de Dokku (nginx termina TLS) --------------------------
+# nginx recibe la petición por https y la reenvía a gunicorn por http plano.
+# Sin esto Django cree que la conexión es insegura: request.is_secure() sería
+# False, las URLs absolutas saldrían con http:// y --el síntoma que se ve
+# primero-- el chequeo de Origin de CSRF compararía contra
+# "http://<host>" mientras el navegador envía "https://<host>" -> 403.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Django >= 4.0 valida el header Origin en toda petición POST y exige que el
+# origen incluya el ESQUEMA. Se derivan de ALLOWED_HOSTS para no mantener la
+# misma lista de dominios en dos sitios; se omiten los de desarrollo, que
+# viajan por http y ya casan con el origen calculado por Django.
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "10.0.2.2", "[::1]"}
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[f"https://{host}" for host in ALLOWED_HOSTS
+             if host not in _LOCAL_HOSTS and not host.startswith(".")],
+)
+
+# Cookies solo por https en producción (el sitio va con HSTS activo). En
+# desarrollo se sirve por http, así que se dejan normales.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 # --- Autenticación (frontend fuera del Admin) ---
 LOGIN_URL = 'authentication:login'
 LOGIN_REDIRECT_URL = 'dashboard'
