@@ -27,7 +27,7 @@ DEBUG = env.bool("DEBUG", default=False)
 # configurado). Hardcodearlo obliga a un redeploy por cada dominio nuevo.
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=["hfiles-dev.cloudteam.net", "localhost", "127.0.0.1"],
+    default=["hfiles-dev.cloudteam.net", "158.23.24.199","localhost", "127.0.0.1",],
 )
 
 # --- Detrás del proxy de Dokku (nginx termina TLS) --------------------------
