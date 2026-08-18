@@ -6,12 +6,9 @@
     <h1>Tipos de actividad</h1>
     <p>{{ page_obj.paginator.count }} clase{{ page_obj.paginator.count|pluralize }} de cliente</p>
   </div>
-  {% if perms.files.add_activitytype %}
-    <a href="{% url 'files:activitytype-create' %}" class="btn btn-primary">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
-      <span>Nuevo tipo</span>
-    </a>
-  {% endif %}
+  {% comment %}Sin botón "Nuevo tipo": esta pantalla es solo mantenimiento
+  (editar/eliminar). El alta vive en el modal de alta rápida del formulario que
+  lo necesita -- ver files/urls.py.{% endcomment %}
 </div>
 
 <div class="grid-table">
@@ -37,7 +34,8 @@
   </div>
   {% empty %}
   <div class="grid-row-empty">
-    No hay tipos de actividad registrados. Hace falta al menos uno para poder dar de alta un cliente.
+    No hay tipos de actividad registrados. Se crean desde el botón «+ Nuevo» que
+    hay junto al campo «Tipo de actividad» al dar de alta un cliente.
   </div>
   {% endfor %}
 </div>

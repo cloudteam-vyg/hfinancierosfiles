@@ -10,31 +10,50 @@ def file_archive_upload_to(instance, filename):
     # clientes/clases con el mismo nombre.
     return f"file_archives/{instance.id}/{filename}"
 
+# Los tres catálogos (ClassName, ActivityType, ArchiveClass) llevan
+# `ordering` a nivel de Meta y no en cada llamada: el orden de las opciones
+# de un <select> lo decidían tres sitios distintos con tres políticas
+# distintas (_upload_page_context con .order_by("name"), FileArchiveEditForm
+# con lo suyo, y FileArchiveUploadForm sin nada -> orden físico de Postgres,
+# que se rebaraja tras cualquier UPDATE). Con esto, todo ModelChoiceField y
+# todo changelist del admin quedan predecibles sin que cada call site se
+# acuerde. NOTA: addAndSelectOption() del JS hace appendChild, así que una
+# opción recién creada desde un modal se queda al final hasta la siguiente
+# carga -- eso es del cliente, no de aquí.
 class ClassName(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(verbose_name="Nombre", max_length=100)
+    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
 
     def __str__(self):
         return self.name
     class Meta:
         verbose_name = "Clase de cliente"
         verbose_name_plural = "Clases de cliente"
+        ordering = ("name",)
 
 
 class ActivityType(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(verbose_name="Nombre", max_length=100)
+    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
 
     def __str__(self):
         return self.name
     class Meta:
         verbose_name = "Tipo de actividad"
         verbose_name_plural = "Tipos de actividad"
+        ordering = ("name",)
 
 
 class Customer(models.Model):
     classname = models.ForeignKey(ClassName, on_delete=models.CASCADE, related_name='customers', verbose_name="Clase de cliente")
-    name = models.CharField(verbose_name="Nombre", max_length=100, null=True, blank=True)
+    # Obligatorio a nivel de MODELO, no solo de formulario: antes era
+    # null=True/blank=True y solo QuickCustomerForm lo forzaba a required, así
+    # que /clientes/nuevo/ y el admin sí dejaban crear clientes sin nombre y
+    # aparecían en todos los <select> como "Sin Nombre - None - X". Arreglarlo
+    # en otro formulario habría dejado abierto el camino número tres (shell,
+    # fixtures, bulk_create): la regla vive en la única capa que nadie puede
+    # saltarse. Ver migración 0003.
+    name = models.CharField(verbose_name="Nombre", max_length=100)
     group = models.CharField(verbose_name="Grupo", max_length=100, null=True, blank=True)
     email = models.EmailField(verbose_name="Correo electrónico", unique=True, null=True, blank=True)
     phone_number = models.CharField(verbose_name="Número de teléfono", max_length=20, blank=True, null=True)
@@ -46,7 +65,17 @@ class Customer(models.Model):
     word_clave = models.CharField(verbose_name="Palabras clave", max_length=100, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.name or 'Sin Nombre'} - {self.group} - {self.activity_type.name}"
+        # Esta cadena ES la etiqueta del <option> en los <select> de cliente
+        # (subida, edición de archivo, personas) y la que devuelve el endpoint
+        # de alta rápida en su campo "label" -- un None que se cuele aquí es
+        # visible para el usuario, no un detalle de depuración. `group` sigue
+        # siendo opcional, así que se arma con las partes presentes en vez de
+        # interpolar a ciegas: antes salía "Cliente - None - Comercio".
+        partes = [self.name]
+        if self.group:
+            partes.append(self.group)
+        partes.append(self.activity_type.name)
+        return " - ".join(partes)
 
     class Meta:
         verbose_name = "1 - Cliente"
@@ -69,14 +98,15 @@ class Person(models.Model):
 
 
 class ArchiveClass(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(verbose_name="Nombre", max_length=100)
+    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
 
     def __str__(self):
         return self.name
     class Meta:
         verbose_name = "Clase de archivo"
         verbose_name_plural = "Clases de archivo"
+        ordering = ("name",)
 
 
 

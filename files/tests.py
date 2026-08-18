@@ -6,9 +6,10 @@ from pypdf import PdfReader, PdfWriter
 
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from .models import ActivityType, ArchiveClass, ClassName, Customer, FileArchive
 from .views import (
@@ -280,6 +281,34 @@ class FileArchiveUpdateViewTests(ArchiveFixtureTestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 403)
 
+    def test_edit_form_offers_archive_class_quick_create(self):
+        user = User.objects.create_user("edita_con_catalogo", password="x")
+        user.groups.clear()
+        for codename in ("change_filearchive", "add_archiveclass"):
+            user.user_permissions.add(Permission.objects.get(codename=codename))
+        self.client.force_login(user)
+
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('id="archive-class-modal"', html)
+        self.assertIn('data-modal-open="archive-class-modal"', html)
+        # Único contrato JS<->Django de este modal: si el nombre del campo del
+        # ModelForm cambia, el modal deja de funcionar en silencio y solo esta
+        # aserción se enteraría.
+        self.assertIn('data-target-select="id_archive_class"', html)
+        self.assertIn("quick_create_modals", html)  # whitenoise le pone hash al nombre
+
+    def test_edit_form_hides_quick_create_without_permission(self):
+        user = User.objects.create_user("edita_sin_catalogo", password="x")
+        # groups.clear() es imprescindible: el grupo estándar concede
+        # add_archiveclass (ver el comentario de test_requires_change_permission).
+        user.groups.clear()
+        user.user_permissions.add(Permission.objects.get(codename="change_filearchive"))
+        self.client.force_login(user)
+
+        html = self.client.get(self.url).content.decode()
+        self.assertNotIn('id="archive-class-modal"', html)
+        self.assertNotIn('data-modal-open="archive-class-modal"', html)
+
     def test_next_param_rejects_javascript_scheme(self):
         # Guardia de regresión: request.GET.next se renderiza en el template
         # (hidden input + href de "Cancelar") -- sin validar el esquema,
@@ -475,8 +504,11 @@ class FileArchiveMissingBytesTests(ArchiveFixtureTestCase):
 
 
 class ClassNameCrudTests(TestCase):
-    """CRUD de "Clase de cliente" en el frontend propio: mismo patrón y
-    mismas reglas de permisos que Cliente/Persona."""
+    """Mantenimiento de "Clase de cliente" en el frontend propio.
+
+    Solo lista/editar/eliminar: el alta no tiene pantalla, vive en el modal de
+    alta rápida (ver files/urls.py y CustomerFormQuickCreateTests).
+    """
 
     def setUp(self):
         self.classname = ClassName.objects.create(name="Persona moral")
@@ -495,19 +527,28 @@ class ClassNameCrudTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Persona moral")
 
-    def test_create_requires_permission(self):
-        self._login()
-        resp = self.client.get(reverse("files:classname-create"))
-        self.assertEqual(resp.status_code, 403)
+    def test_list_renders_for_user_with_add_permission(self):
+        """La lista NO puede llevar un {% url %} a la ruta de alta retirada.
 
-    def test_create_with_permission(self):
+        El 200 ES la aserción: el botón "Nueva clase" vivía dentro de un
+        {% if perms.files.add_classname %}, y {% url %} levanta NoReverseMatch
+        al renderizar -> 500 para todo usuario estándar (el grupo concede
+        add_classname). test_list_is_visible_to_any_authenticated_user no lo
+        detecta porque entra sin permisos y el {% if %} nunca se evalúa.
+        """
         self._login("add_classname")
-        resp = self.client.post(
-            reverse("files:classname-create"),
-            {"name": "Persona física", "description": "Contribuyente individual"},
-        )
-        self.assertRedirects(resp, reverse("files:classname-list"))
-        self.assertTrue(ClassName.objects.filter(name="Persona física").exists())
+        resp = self.client.get(reverse("files:classname-list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Nueva clase")
+
+    def test_create_route_no_longer_exists(self):
+        # Se fija el NOMBRE (para que ninguna plantilla lo resucite) y la URL
+        # (para que no la absorba un patrón hermano: "nueva" no es int, así que
+        # <int:pk>/editar/ no puede).
+        with self.assertRaises(NoReverseMatch):
+            reverse("files:classname-create")
+        self._login("add_classname")
+        self.assertEqual(self.client.get("/clases-cliente/nueva/").status_code, 404)
 
     def test_update_with_permission(self):
         self._login("change_classname")
@@ -539,7 +580,8 @@ class ClassNameCrudTests(TestCase):
 
 
 class ActivityTypeCrudTests(TestCase):
-    """CRUD de "Tipo de actividad", mismo patrón que Clase de cliente."""
+    """Mantenimiento de "Tipo de actividad", mismo patrón que Clase de cliente:
+    sin pantalla de alta, solo lista/editar/eliminar."""
 
     def setUp(self):
         self.activity = ActivityType.objects.create(name="Comercio")
@@ -558,17 +600,18 @@ class ActivityTypeCrudTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Comercio")
 
-    def test_create_requires_permission(self):
-        self._login()
-        self.assertEqual(self.client.get(reverse("files:activitytype-create")).status_code, 403)
-
-    def test_create_with_permission(self):
+    def test_list_renders_for_user_with_add_permission(self):
+        # Mismo caso de 500 por {% url %} muerto que en ClassNameCrudTests.
         self._login("add_activitytype")
-        resp = self.client.post(
-            reverse("files:activitytype-create"), {"name": "Servicios", "description": ""},
-        )
-        self.assertRedirects(resp, reverse("files:activitytype-list"))
-        self.assertTrue(ActivityType.objects.filter(name="Servicios").exists())
+        resp = self.client.get(reverse("files:activitytype-list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Nuevo tipo")
+
+    def test_create_route_no_longer_exists(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse("files:activitytype-create")
+        self._login("add_activitytype")
+        self.assertEqual(self.client.get("/tipos-actividad/nuevo/").status_code, 404)
 
     def test_delete_warns_about_dependent_customers(self):
         classname = ClassName.objects.create(name="Clase")
@@ -633,3 +676,193 @@ class CustomerFormQuickCreateTests(TestCase):
         resp = self.client.post(reverse("files:activitytype-quick-create"), {"name": ""})
         self.assertEqual(resp.status_code, 400)
         self.assertIn("name", resp.json()["errors"])
+
+    # --- description en los tres catálogos -----------------------------------
+    # Se afirma el valor GUARDADO, nunca el 201: antes de exponer el campo en el
+    # ModelForm, el endpoint ya devolvía 201 y descartaba la descripción en
+    # silencio, así que un test sobre el status code habría pasado en verde sin
+    # que el campo llegara a la base de datos.
+
+    def test_classname_quick_create_stores_description(self):
+        self._login("add_classname")
+        resp = self.client.post(
+            reverse("files:classname-quick-create"),
+            {"name": "Persona física", "description": "Contribuyente individual"},
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(
+            ClassName.objects.get(name="Persona física").description,
+            "Contribuyente individual",
+        )
+
+    def test_activity_type_quick_create_stores_description(self):
+        self._login("add_activitytype")
+        resp = self.client.post(
+            reverse("files:activitytype-quick-create"),
+            {"name": "Manufactura", "description": "Transformación de bienes"},
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(
+            ActivityType.objects.get(name="Manufactura").description,
+            "Transformación de bienes",
+        )
+
+    def test_archive_class_quick_create_stores_description(self):
+        self._login("add_archiveclass")
+        resp = self.client.post(
+            reverse("files:archive-class-quick-create"),
+            {"name": "Contrato", "description": "Documentos contractuales"},
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(
+            ArchiveClass.objects.get(name="Contrato").description,
+            "Documentos contractuales",
+        )
+
+    def test_quick_create_without_description_still_works(self):
+        self._login("add_classname")
+        resp = self.client.post(reverse("files:classname-quick-create"), {"name": "Sin descripción"})
+        self.assertEqual(resp.status_code, 201)
+        self.assertFalse(ClassName.objects.get(name="Sin descripción").description)
+
+    def test_quick_create_rejects_duplicate_name_case_insensitively(self):
+        # name no lleva unique=True en la base (ver ARCHITECTURE.md): con el alta
+        # a un clic desde tres sitios, dos "Comercio" se crean sin esfuerzo y el
+        # <select> acaba con dos opciones idénticas de pk distinto.
+        ClassName.objects.create(name="Comercio")
+        self._login("add_classname")
+        resp = self.client.post(reverse("files:classname-quick-create"), {"name": "comercio"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("name", resp.json()["errors"])
+        self.assertEqual(ClassName.objects.filter(name__iexact="comercio").count(), 1)
+
+    # --- Customer.name obligatorio en TODOS los caminos ----------------------
+
+    def _customer_payload(self, **overrides):
+        classname = ClassName.objects.create(name="Clase")
+        activity = ActivityType.objects.create(name="Actividad")
+        payload = {
+            "classname": classname.pk,
+            "activity_type": activity.pk,
+            "date_of_constitution": "2020-01-01",
+            "name": "ACME",
+            "group": "", "email": "", "phone_number": "", "address": "",
+            "country": "", "web_site": "", "word_clave": "",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_customer_create_view_rejects_blank_name(self):
+        """Este es el bug que arregla la migración 0003.
+
+        Antes, este POST creaba un cliente que se mostraba como
+        "Sin Nombre - None - Actividad" en todos los <select> de la app: el
+        modal exigía el nombre pero el alta completa y el admin no.
+        """
+        self._login("add_customer")
+        resp = self.client.post(reverse("files:customer-create"), self._customer_payload(name=""))
+        self.assertEqual(resp.status_code, 200)  # re-render, no redirect
+        self.assertIn("name", resp.context["form"].errors)
+        self.assertEqual(Customer.objects.count(), 0)
+
+    def test_customer_quick_create_requires_name(self):
+        # Prueba que la obligatoriedad sobrevivió a borrar el
+        # `self.fields["name"].required = True` manual: ahora viene del modelo.
+        self._login("add_customer")
+        payload = self._customer_payload(name="")
+        del payload["group"]
+        resp = self.client.post(reverse("files:customer-quick-create"), payload)
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("name", resp.json()["errors"])
+
+    def test_customer_model_rejects_blank_name(self):
+        classname = ClassName.objects.create(name="Clase")
+        activity = ActivityType.objects.create(name="Actividad")
+        cliente = Customer(
+            classname=classname, activity_type=activity,
+            date_of_constitution="2020-01-01", name="",
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            cliente.full_clean()
+        self.assertIn("name", ctx.exception.message_dict)
+
+    def test_customer_quick_create_label_identifies_the_customer(self):
+        """El label va directo a un <option> vía addAndSelectOption()."""
+        self._login("add_customer")
+        payload = self._customer_payload(name="ACME")
+        del payload["group"]
+        resp = self.client.post(reverse("files:customer-quick-create"), payload)
+        self.assertEqual(resp.status_code, 201)
+        label = resp.json()["label"]
+        self.assertIn("ACME", label)
+        # group es opcional y el modal no lo pide: __str__ no debe interpolar None.
+        self.assertNotIn("None", label)
+
+    # --- orden de las opciones ----------------------------------------------
+
+    def test_archive_class_options_are_alphabetical(self):
+        # archive_class era el único <select> sin order_by explícito: devolvía el
+        # orden físico de Postgres, que se rebaraja tras cualquier UPDATE.
+        ArchiveClass.objects.create(name="Zeta")
+        ArchiveClass.objects.create(name="Alfa")
+        self._login("add_filearchive")
+        resp = self.client.get(reverse("files:archive-upload"))
+        nombres = [c.name for c in resp.context["form"].fields["archive_class"].queryset]
+        self.assertEqual(nombres, sorted(nombres))
+
+    # --- modales anidados en /archivos/subir/ --------------------------------
+
+    def test_upload_page_offers_nested_catalog_modals(self):
+        """El callejón sin salida que abre retirar la pantalla de alta.
+
+        Sin estos dos modales de segundo nivel, un usuario con los catálogos
+        vacíos abre "+ Nuevo cliente" y se encuentra dos <select> obligatorios
+        que no puede rellenar desde ninguna parte.
+        """
+        self._login("add_filearchive", "add_customer", "add_classname", "add_activitytype")
+        html = self.client.get(reverse("files:archive-upload")).content.decode()
+
+        # El modal padre y los dos hijos, cada uno con su id derivado de modal_id.
+        self.assertIn('id="customer-modal"', html)
+        self.assertIn('id="qc-classname-modal"', html)
+        self.assertIn('id="qc-activitytype-modal"', html)
+
+        # Los "+" viven DENTRO del cuerpo del modal de cliente y apuntan a los hijos.
+        self.assertIn('data-modal-open="qc-classname-modal"', html)
+        self.assertIn('data-modal-open="qc-activitytype-modal"', html)
+
+        # Los hijos escriben en los <select> del padre, no en los de la página.
+        self.assertIn('data-target-select="qc-classname"', html)
+        self.assertIn('data-target-select="qc-activity-type"', html)
+
+        # Y el pie de mantenimiento, ahora que el catálogo salió del sidebar.
+        self.assertIn(reverse("files:classname-list"), html)
+
+    def test_upload_page_nested_modals_follow_permissions(self):
+        self._login("add_filearchive", "add_customer")
+        html = self.client.get(reverse("files:archive-upload")).content.decode()
+        self.assertIn('id="customer-modal"', html)
+        # El botón y su modal se emiten bajo la MISMA condición: si divergen, el
+        # botón abriría un modal inexistente (openModal hace un no-op silencioso).
+        self.assertNotIn('id="qc-classname-modal"', html)
+        self.assertNotIn('data-modal-open="qc-classname-modal"', html)
+
+    def test_forms_opt_into_searchable_selects(self):
+        # El umbral viaja en el data-*, no en una constante del JS.
+        self._login("add_customer")
+        html = self.client.get(reverse("files:customer-create")).content.decode()
+        self.assertIn("data-hf-searchable", html)
+        self.assertIn('data-hf-searchable-min-options="8"', html)
+        self.assertIn("data-hf-validate", html)
+        self.assertIn("hf_searchable_select", html)  # whitenoise le pone hash al nombre
+
+    # --- etiquetas en español en las pantallas que sobreviven ---------------
+
+    def test_classname_update_form_labels_are_spanish(self):
+        classname = ClassName.objects.create(name="Persona moral")
+        self._login("change_classname")
+        html = self.client.get(
+            reverse("files:classname-update", args=[classname.pk])
+        ).content.decode()
+        self.assertIn(">Nombre", html)
+        self.assertNotIn("Description", html)

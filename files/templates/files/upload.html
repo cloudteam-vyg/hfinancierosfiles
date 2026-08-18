@@ -19,7 +19,7 @@
   </div>
 </div>
 
-<form method="post" id="hf-upload-form" enctype="multipart/form-data" novalidate>
+<form method="post" id="hf-upload-form" enctype="multipart/form-data" novalidate data-hf-validate data-hf-searchable data-hf-searchable-min-options="8">
   {% csrf_token %}
 
   <div class="upload-grid">
@@ -28,7 +28,7 @@
            data-max-upload-size-mb="{{ max_upload_size_mb }}">
         {{ form.file }}
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--brand-ink);"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
-        <div style="font-size: 15px; font-weight: 500; margin-top: 14px;">Arrastre su archivo aquí</div>
+        <div style="font-size: 15px; font-weight: 500; margin-top: 14px;">Arrastre su archivo aquí{% if form.fields.file.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</div>
         <p class="hf-dropzone-hint" style="margin-top: 6px;">o pegue con Ctrl + V, o haga clic para seleccionarlo</p>
         <div class="mono" style="font-size: 11px; color: var(--faint); margin-top: 18px;">Máx. {{ max_upload_size_mb }} MB</div>
         <div class="hf-upload-box">
@@ -47,24 +47,37 @@
         </ul>
       {% endif %}
 
+      {% comment %}Leyenda entera con aria-hidden: ver el mismo comentario en
+      customer_form.html. El archivo en sí también es obligatorio, aunque su
+      input viva en el dropzone de la izquierda.{% endcomment %}
+      <p class="form-legend" aria-hidden="true">Los campos con <span class="form-required">*</span> son obligatorios.</p>
+
       <div class="form-field">
-        <label for="{{ form.archive_class.id_for_label }}">Clase de archivo</label>
-        <div class="field-with-action">
+        <label for="{{ form.archive_class.id_for_label }}">Clase de archivo{% if form.fields.archive_class.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
+        {% if perms.files.add_archiveclass %}
+          <div class="field-with-action">
+            {{ form.archive_class }}
+            <button type="button" class="btn btn-sm" data-modal-open="archive-class-modal">+ Nueva</button>
+          </div>
+        {% else %}
           {{ form.archive_class }}
-          <button type="button" class="btn btn-sm" data-modal-open="archive-class-modal">+ Nueva</button>
-        </div>
+        {% endif %}
         {{ form.archive_class.errors }}
       </div>
       <div class="form-field">
-        <label for="{{ form.customer.id_for_label }}">Cliente</label>
-        <div class="field-with-action">
+        <label for="{{ form.customer.id_for_label }}">Cliente{% if form.fields.customer.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
+        {% if perms.files.add_customer %}
+          <div class="field-with-action">
+            {{ form.customer }}
+            <button type="button" class="btn btn-sm" data-modal-open="customer-modal">+ Nuevo</button>
+          </div>
+        {% else %}
           {{ form.customer }}
-          <button type="button" class="btn btn-sm" data-modal-open="customer-modal">+ Nuevo</button>
-        </div>
+        {% endif %}
         {{ form.customer.errors }}
       </div>
       <div class="form-field">
-        <label for="{{ form.name.id_for_label }}">Nombre visible</label>
+        <label for="{{ form.name.id_for_label }}">Nombre visible{% if form.fields.name.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
         {{ form.name }}
         {{ form.name.errors }}
       </div>
@@ -85,75 +98,41 @@
   </div>
 </form>
 
-<!-- Modal: nuevo cliente -->
-<div class="modal-overlay hidden" id="customer-modal">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="customer-modal-title">
-    <div class="hf-modal-header">
-      <h3 id="customer-modal-title">Nuevo cliente</h3>
-      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
-    </div>
-    <form id="quick-customer-form" class="hf-modal-body" novalidate
-          data-quick-create-url="{% url 'files:customer-quick-create' %}"
-          data-target-select="id_customer">
-      {% csrf_token %}
-      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
-      <div class="form-field">
-        <label for="qc-name">Nombre</label>
-        <input type="text" id="qc-name" name="name" maxlength="100" required>
-      </div>
-      <div class="form-field">
-        <label for="qc-classname">Clase de cliente</label>
-        <select id="qc-classname" name="classname" required>
-          <option value="">---------</option>
-          {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-field">
-        <label for="qc-activity-type">Tipo de actividad</label>
-        <select id="qc-activity-type" name="activity_type" required>
-          <option value="">---------</option>
-          {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-field">
-        <label for="qc-date-of-constitution">Fecha de constitución</label>
-        <input type="date" id="qc-date-of-constitution" name="date_of_constitution" required>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear cliente</button>
-        <button type="button" class="btn" data-modal-close>Cancelar</button>
-      </div>
-    </form>
-  </div>
-</div>
+{% comment %}Los CUATRO modales de esta página son hermanos al nivel superior de
+app_content, incluidos los dos de segundo nivel: se abren DESDE el modal de
+cliente, pero no viven dentro de él (ver la nota del partial).{% endcomment %}
+{% url 'files:classname-quick-create' as classname_qc_url %}
+{% url 'files:classname-list' as classname_list_url %}
+{% url 'files:activitytype-quick-create' as activitytype_qc_url %}
+{% url 'files:activitytype-list' as activitytype_list_url %}
 
-<!-- Modal: nueva clase de archivo -->
-<div class="modal-overlay hidden" id="archive-class-modal">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="archive-class-modal-title">
-    <div class="hf-modal-header">
-      <h3 id="archive-class-modal-title">Nueva clase de archivo</h3>
-      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
-    </div>
-    <form id="quick-archive-class-form" class="hf-modal-body" novalidate
-          data-quick-create-url="{% url 'files:archive-class-quick-create' %}"
-          data-target-select="id_archive_class">
-      {% csrf_token %}
-      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
-      <div class="form-field">
-        <label for="qac-name">Nombre</label>
-        <input type="text" id="qac-name" name="name" maxlength="100" required>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear clase</button>
-        <button type="button" class="btn" data-modal-close>Cancelar</button>
-      </div>
-    </form>
-  </div>
-</div>
+{% url 'files:customer-quick-create' as customer_qc_url %}
+{% if perms.files.add_customer %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="customer-modal" title="Nuevo cliente" submit_label="Crear cliente" quick_create_url=customer_qc_url target_select="id_customer" body_template="files/partials/quick_create_customer_fields.html" %}
+{% endif %}
+
+{% url 'files:archive-class-quick-create' as archive_class_qc_url %}
+{% if perms.files.add_archiveclass %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="archive-class-modal" title="Nueva clase de archivo" submit_label="Crear clase" quick_create_url=archive_class_qc_url target_select="id_archive_class" %}
+{% endif %}
+
+{% comment %}Modales de SEGUNDO nivel: los abren los "+" que están dentro del
+modal de cliente. Sin ellos, un usuario con los catálogos vacíos se queda con
+dos <select> obligatorios que no puede rellenar desde ninguna parte, ahora que
+no hay pantalla de alta aislada.{% endcomment %}
+{% if perms.files.add_classname %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="qc-classname-modal" title="Nueva clase de cliente" submit_label="Crear clase" quick_create_url=classname_qc_url target_select="qc-classname" manage_url=classname_list_url %}
+{% endif %}
+{% if perms.files.add_activitytype %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="qc-activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="qc-activity-type" manage_url=activitytype_list_url %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
   <script src="{% static 'files/js/hf_utils.js' %}"></script>
+  <script src="{% static 'files/js/hf_toast.js' %}"></script>
+  <script src="{% static 'files/js/hf_form_validate.js' %}"></script>
+  <script src="{% static 'files/js/hf_searchable_select.js' %}"></script>
   <script src="{% static 'files/js/upload_page.js' %}"></script>
   <script src="{% static 'files/js/quick_create_modals.js' %}"></script>
 {% endblock %}

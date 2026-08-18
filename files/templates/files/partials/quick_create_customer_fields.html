@@ -1,0 +1,59 @@
+{% comment %}Cuerpo del modal "Nuevo cliente" (QuickCustomerForm).
+
+Los cuatro campos son obligatorios en el modelo, no por comodidad del modal
+(ver files/models.py y QuickCustomerForm).
+
+Los ids NO se derivan de modal_id aquí, se dejan fijos (qc-classname,
+qc-activity-type): son el valor de data-target-select de los modales de segundo
+nivel, y el <label for> los referencia. Este cuerpo se usa en una sola página.
+
+Los dos <select> están escritos a mano (no {{ form.x }}) porque este modal no
+recibe un form de Django: se alimenta de los querysets classnames /
+activity_types que pone _upload_page_context en files/views.py.
+
+Aquí es donde vive el arreglo del callejón sin salida: al no haber ya pantalla
+de alta de catálogos, un usuario con los catálogos vacíos se quedaba con dos
+<select> obligatorios y ninguna forma de rellenarlos. Los "+" abren los modales
+de segundo nivel, que están declarados como HERMANOS en upload.html.{% endcomment %}
+<div class="form-field">
+  <label for="qc-name">Nombre<span class="form-required" aria-hidden="true">*</span></label>
+  <input type="text" id="qc-name" name="name" maxlength="100" required>
+</div>
+<div class="form-field">
+  <label for="qc-classname">Clase de cliente<span class="form-required" aria-hidden="true">*</span></label>
+  {% if perms.files.add_classname %}
+    <div class="field-with-action">
+      <select id="qc-classname" name="classname" required>
+        <option value="">---------</option>
+        {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+      </select>
+      <button type="button" class="btn btn-sm" data-modal-open="qc-classname-modal">+ Nueva</button>
+    </div>
+  {% else %}
+    <select id="qc-classname" name="classname" required>
+      <option value="">---------</option>
+      {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+    </select>
+  {% endif %}
+</div>
+<div class="form-field">
+  <label for="qc-activity-type">Tipo de actividad<span class="form-required" aria-hidden="true">*</span></label>
+  {% if perms.files.add_activitytype %}
+    <div class="field-with-action">
+      <select id="qc-activity-type" name="activity_type" required>
+        <option value="">---------</option>
+        {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+      </select>
+      <button type="button" class="btn btn-sm" data-modal-open="qc-activitytype-modal">+ Nuevo</button>
+    </div>
+  {% else %}
+    <select id="qc-activity-type" name="activity_type" required>
+      <option value="">---------</option>
+      {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
+    </select>
+  {% endif %}
+</div>
+<div class="form-field">
+  <label for="qc-date-of-constitution">Fecha de constitución<span class="form-required" aria-hidden="true">*</span></label>
+  <input type="date" id="qc-date-of-constitution" name="date_of_constitution" required>
+</div>

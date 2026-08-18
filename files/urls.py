@@ -6,14 +6,19 @@ app_name = "files"
 
 urlpatterns = [
     # --- Clases de cliente (ClassName) ---
+    # NO hay ruta de alta a propósito: este catálogo solo se necesita a media
+    # tarea (mientras se da de alta un Cliente o se sube un Archivo), y una
+    # pantalla aparte obligaba a abandonar el formulario a medio llenar. El alta
+    # vive ÚNICAMENTE en el modal de alta rápida
+    # (api/class-names/quick-create/, más abajo); lo que queda aquí es la
+    # superficie de mantenimiento, a la que se llega desde el pie de ese modal.
     path("clases-cliente/", views.ClassNameListView.as_view(), name="classname-list"),
-    path("clases-cliente/nueva/", views.ClassNameCreateView.as_view(), name="classname-create"),
     path("clases-cliente/<int:pk>/editar/", views.ClassNameUpdateView.as_view(), name="classname-update"),
     path("clases-cliente/<int:pk>/eliminar/", views.ClassNameDeleteView.as_view(), name="classname-delete"),
 
     # --- Tipos de actividad (ActivityType) ---
+    # Sin ruta de alta, por lo mismo que las clases de cliente.
     path("tipos-actividad/", views.ActivityTypeListView.as_view(), name="activitytype-list"),
-    path("tipos-actividad/nuevo/", views.ActivityTypeCreateView.as_view(), name="activitytype-create"),
     path("tipos-actividad/<int:pk>/editar/", views.ActivityTypeUpdateView.as_view(), name="activitytype-update"),
     path("tipos-actividad/<int:pk>/eliminar/", views.ActivityTypeDeleteView.as_view(), name="activitytype-delete"),
 
@@ -37,7 +42,8 @@ urlpatterns = [
     path("archivos/<uuid:pk>/editar/", views.FileArchiveUpdateView.as_view(), name="archive-update"),
     path("archivos/<uuid:pk>/preview/", views.file_archive_preview_view, name="archive-preview"),
 
-    # --- Alta rápida (modales de /archivos/subir/) ---
+    # --- Alta rápida (modales de /archivos/subir/ y del alta de cliente) ---
+    # Para ClassName y ActivityType esta es la ÚNICA vía de alta que existe.
     path("api/customers/quick-create/", views.customer_quick_create_view, name="customer-quick-create"),
     path("api/archive-classes/quick-create/", views.archive_class_quick_create_view, name="archive-class-quick-create"),
     path("api/class-names/quick-create/", views.classname_quick_create_view, name="classname-quick-create"),

@@ -103,6 +103,18 @@ intercepta con `XMLHttpRequest` para mostrar **barra de progreso real**;
   `+ Nuevo` que abren un modal. El modal envía por `fetch` a su endpoint,
   inserta la opción creada en el `<select>` y la deja seleccionada, **sin
   recargar la página ni perder lo ya escrito** en el formulario principal.
+- El modal de **Nuevo cliente** lleva a su vez botones `+` junto a *Clase de
+  cliente* y *Tipo de actividad*: **modales anidados**, hasta dos niveles. Se
+  apilan lógicamente (`data-stack-depth`), no en el DOM, y `Escape` cierra solo
+  el de arriba para no descartar el formulario padre a medio llenar.
+- Los desplegables largos se convierten en un **combobox con búsqueda**
+  (`hf_searchable_select.js`, filtrado sin distinguir acentos ni mayúsculas). El
+  `<select>` nativo permanece como fuente de verdad, así que la página sigue
+  funcionando sin JavaScript.
+- Los campos obligatorios llevan **asterisco rojo** derivado de
+  `field.field.required` (nunca escrito a mano) más la leyenda "Los campos con *
+  son obligatorios". Al enviar con datos faltantes se pinta el error bajo cada
+  campo y aparece un **toast** de resumen (`hf_toast.js`).
 - Al guardar, la respuesta es JSON (`{"success": true, "redirect_url": …}`)
   cuando la petición es AJAX, o una redirección clásica si no lo es. El
   archivo queda disponible de inmediato: no hay estado "pendiente".
@@ -176,23 +188,47 @@ vuelve a mostrar en el formulario.
 | GET | `/archivos/<uuid>/descargar/` | `files:archive-download` | Descarga del original |
 | GET/POST | `/archivos/<uuid>/editar/` | `files:archive-update` | Edición de metadatos |
 | POST | `/archivos/<uuid>/eliminar/` | `files:archive-delete` | Borrado |
+| GET | `/clases-cliente/` | `files:classname-list` | Mantenimiento del catálogo (sin alta) |
+| GET/POST | `/clases-cliente/<pk>/editar/` | `files:classname-update` | Edición |
+| POST | `/clases-cliente/<pk>/eliminar/` | `files:classname-delete` | Borrado (avisa del CASCADE) |
+| GET | `/tipos-actividad/` | `files:activitytype-list` | Mantenimiento del catálogo (sin alta) |
+| GET/POST | `/tipos-actividad/<pk>/editar/` | `files:activitytype-update` | Edición |
+| POST | `/tipos-actividad/<pk>/eliminar/` | `files:activitytype-delete` | Borrado (avisa del CASCADE) |
 | POST | `/api/customers/quick-create/` | `files:customer-quick-create` | Alta rápida de cliente → `{id, label}` |
-| POST | `/api/archive-classes/quick-create/` | `files:archive-class-quick-create` | Alta rápida de clase → `{id, label}` |
+| POST | `/api/archive-classes/quick-create/` | `files:archive-class-quick-create` | Alta rápida de clase de archivo → `{id, label}` |
+| POST | `/api/class-names/quick-create/` | `files:classname-quick-create` | Alta rápida de clase de cliente → `{id, label}` |
+| POST | `/api/activity-types/quick-create/` | `files:activitytype-quick-create` | Alta rápida de tipo de actividad → `{id, label}` |
 
 Clientes y personas exponen el CRUD habitual bajo `/clientes/` y `/personas/`.
 
-Los dos endpoints `quick-create` responden `201` con `{"id": …, "label": …}` o
-`400` con `{"errors": {campo: [...]}}`, y exigen CSRF (`X-CSRFToken`) y el
-permiso de alta del modelo correspondiente.
+Los dos catálogos de cliente (`ClassName`, `ActivityType`) **no tienen pantalla
+de alta**, a propósito: solo se necesitan a media tarea, mientras se rellena un
+cliente o una subida, y una pantalla aparte obligaba a abandonar el formulario a
+medio llenar. Su alta vive únicamente en el modal de alta rápida; lo que queda
+bajo `/clases-cliente/` y `/tipos-actividad/` es la superficie de
+mantenimiento, a la que se llega desde el pie de ese modal (no desde el
+sidebar, del que se retiraron). `ArchiveClass` va más lejos y no tiene ninguna
+pantalla propia.
+
+Los cuatro endpoints `quick-create` responden `201` con `{"id": …, "label": …}`
+o `400` con `{"errors": {campo: [...]}}`, y exigen CSRF (`X-CSRFToken`) y el
+permiso de alta del modelo correspondiente. Los tres de catálogo aceptan
+`name` y `description`, y rechazan un `name` que ya exista sin distinguir
+mayúsculas (`name` no lleva `unique=True` en la base: ver la deuda técnica).
 
 ---
 
 ## Permisos
 
 El grupo **"Usuarios estándar"** se crea y mantiene solo (ver
-`authentication/signals.py`): otorga `add` y `change` sobre Customer, Person,
-FileArchive y ArchiveClass, **nunca `delete`**. Todo usuario nuevo que no sea
+`authentication/signals.py`): otorga `add` y `change` sobre los seis modelos de
+`MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass, ClassName y
+ActivityType), **nunca `delete`** ni `view`. Todo usuario nuevo que no sea
 superusuario entra a ese grupo automáticamente.
+
+Los dos catálogos necesitan `add` justamente porque el modal es su única vía de
+alta: sin ese permiso, un usuario estándar no podría crear el catálogo que su
+propio formulario le exige.
 
 Ver y descargar archivos solo requiere estar autenticado: no hay noción de
 "clientes propios" por usuario.
@@ -214,6 +250,15 @@ La suite cubre la superficie sensible: whitelist de previsualización, cabeceras
 de seguridad, truncado y cache de PDF, permisos de edición, validación de
 subida y filtros por fecha. Los tests usan siempre un `MEDIA_ROOT` temporal;
 **nunca** escriben en el `media/` real.
+
+También fija lo que es fácil romper en silencio: que las rutas de alta
+retiradas sigan devolviendo 404 y su nombre sin resolver; que las listas de
+catálogo rendericen **con** el permiso de alta (un `{% url %}` a una ruta
+inexistente levanta `NoReverseMatch` *al renderizar*, es decir un 500 que solo
+se ve si el `{% if perms %}` se evalúa); que `Customer.name` sea obligatorio en
+los tres caminos de alta; que los endpoints de catálogo guarden de verdad la
+`description`; y que `data-target-select` siga apuntando al id que genera el
+ModelForm.
 
 ---
 

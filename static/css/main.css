@@ -93,6 +93,19 @@ body.scroll-locked { overflow: hidden; }
    el JS creía haber ocultado (el.hidden = true). Nota: esta regla anula
    hidden="until-found"; si algún día se necesita, excluirlo aquí. */
 [hidden] { display: none !important; }
+/* Oculto a la vista pero SIN display:none, que es la diferencia que importa:
+   el elemento sigue siendo ENFOCABLE. Lo necesita el <select> nativo que
+   envuelve .hf-combo (ver files/static/files/js/hf_searchable_select.js): con
+   display:none, un navegador que corra su validación nativa se encuentra un
+   control required imposible de enfocar, se niega a enviar el formulario y
+   solo lo loguea en consola -- botón Guardar muerto sin ningún mensaje. */
+.hf-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+/* .form-field select (0,1,1) le gana en especificidad a .hf-sr-only (0,1,0) y
+   le devolvía los 40px de alto. De ahí el selector con el tipo delante. */
+select.hf-sr-only { height: 1px; min-height: 0; }
 body {
   color: var(--ink);
   font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
@@ -365,8 +378,21 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
   color: var(--faint); cursor: not-allowed;
 }
 .form-help { color: var(--faint); font-size: 11px; }
-.form-error, .hf-form-errors { color: var(--red); font-size: 13px; }
+/* .errorlist es lo que renderiza {{ field.errors }} de Django. Sin ella, los
+   errores de servidor salían como viñetas negras del navegador: el proyecto
+   solo estilaba las clases que emite su propio JS. */
+.form-error, .hf-form-errors, .errorlist { color: var(--red); font-size: 13px; }
 .form-actions { display: flex; gap: 9px; margin-top: 20px; }
+
+/* --- Campos obligatorios -------------------------------------------------
+   El asterisco es un refuerzo VISUAL de required/aria-required (de ahí el
+   aria-hidden en las plantillas): el color por sí solo no puede portar el
+   significado, y el lector de pantalla ya anuncia la obligatoriedad por el
+   atributo del control. En las plantillas se DERIVA de field.field.required,
+   nunca escrito a mano -- a mano mentiría en cuanto cambie un blank= en
+   files/models.py. */
+.form-required { color: var(--red); font-weight: 600; margin-left: 3px; }
+.form-legend { margin: 0 0 14px; font-size: 11.5px; color: var(--faint); }
 
 /* Tarjetas de estadística (dashboard) */
 .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
@@ -500,7 +526,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
     gap: 8px;
 }
 
-.field-with-action select {
+.field-with-action select,
+.field-with-action .hf-combo {
     flex: 1;
     min-width: 0;
 }
@@ -538,6 +565,26 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 
 .modal-overlay.is-open {
     opacity: 1;
+}
+
+/* --- Modales apilados ---------------------------------------------------
+   data-stack-depth lo escribe openModal() según la posición en su pila. Sin
+   esto, todos los overlays valían z-index:1000 y quién quedaba encima
+   dependía del orden de los {% include %} en la plantilla.
+
+   Solo hay dos niveles definidos a propósito: el dominio tiene exactamente
+   dos (catálogo dentro de cliente dentro de la página). openModal() TOPA el
+   atributo en el máximo definido aquí en vez de emitir un ="3", que caería al
+   1000 base y volvería a pintar por orden del DOM. */
+.modal-overlay[data-stack-depth="1"] { z-index: 1010; }
+.modal-overlay[data-stack-depth="2"] { z-index: 1020; }
+
+/* Dos velos al 50% superpuestos componen ~75% de negro y el modal de abajo
+   queda casi invisible. rgba() en crudo y no un token: es un velo, no un
+   color del tema (mismo criterio que el .modal-overlay de arriba). */
+.modal-overlay[data-stack-depth="1"],
+.modal-overlay[data-stack-depth="2"] {
+    background: rgba(0, 0, 0, .32);
 }
 
 .modal-content {
@@ -599,4 +646,173 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 .hf-modal-errors:not([hidden]) {
     margin: 0 0 14px;
     padding-left: 18px;
+}
+
+/* Enlace "Gestionar catálogos" del pie del modal. Abre en pestaña nueva a
+   propósito (ver el partial): se pulsa con el formulario padre a medio
+   llenar, y navegar en la misma pestaña lo perdería. */
+.hf-modal-footer {
+    margin: 16px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--line2);
+    font-size: 12px;
+}
+
+.hf-modal-footer a { color: var(--brand-ink); }
+
+/* =========================================================================
+   Escala de z-index -- toda junta a propósito: repartida por componentes ya
+   se dio el caso de dos overlays con el mismo valor donde quién quedaba
+   encima dependía del orden del {% include %}.
+
+     890   .drawer-backdrop        (drawer móvil de /archivos/)
+     900   .preview-panel          (drawer móvil de /archivos/)
+    1000   .modal-overlay          (base)
+    1010   .modal-overlay[data-stack-depth="1"]   modal abierto DESDE otro
+    1020   .modal-overlay[data-stack-depth="2"]
+    1050   .hf-combo-list          (lista del select con búsqueda: es hija de
+                                   <body> porque .modal-content la recortaría
+                                   -- overflow-y + transform)
+    1100   .hf-toasts              (siempre visible, incluso sobre un modal)
+   ========================================================================= */
+
+/* =========================================================================
+   Select con búsqueda (combobox) -- files/static/files/js/hf_searchable_select.js
+   El <select> nativo NO se elimina ni se oculta con display:none: se queda
+   con .hf-sr-only como fuente de verdad del valor (los POST no cambian y la
+   página degrada sin JS). Ver la nota de .hf-sr-only más arriba.
+   ========================================================================= */
+.hf-combo { position: relative; display: flex; }
+
+/* El input hereda borde, alto y anillo de foco de .form-field input. Solo
+   hace falta hueco a la derecha para que el texto no pase bajo el caret. */
+.form-field .hf-combo-input { width: 100%; padding-right: 30px; }
+
+/* Caret en CSS y no un SVG inyectado: construir SVG exige createElementNS y
+   en este proyecto innerHTML no se usa. */
+.hf-combo::after {
+    content: "";
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin-top: -5px;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    transform: rotate(45deg);
+    pointer-events: none;
+    transition: transform .12s ease;
+}
+
+.hf-combo[data-expanded="true"]::after {
+    margin-top: -2px;
+    transform: rotate(225deg);
+}
+
+/* Hija de <body> y position:fixed por obligación, no por gusto:
+   .modal-content tiene overflow-y:auto (la recortaría) Y transform en estado
+   abierto, y un transform distinto de none convierte al elemento en
+   containing block de sus descendientes position:fixed. Dentro de un modal
+   no hay otra opción que funcione, y fuera se comporta igual. */
+.hf-combo-list {
+    position: fixed;
+    z-index: 1050;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 9px;
+    box-shadow: var(--shadow);
+    font-size: 13.5px;
+    color: var(--ink);
+}
+
+/* Sin transición a propósito: abre y cierra al instante, lo que ahorra a este
+   componente todo el trabajo de transitionend y prefers-reduced-motion. */
+.hf-combo-option {
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* El foco NUNCA entra en la lista (eso es lo que compra aria-activedescendant),
+   así que la opción "activa" se marca con una clase, no con :focus. */
+.hf-combo-option.is-active { background: var(--brand-soft); color: var(--brand-ink); }
+.hf-combo-option[aria-selected="true"] { font-weight: 600; }
+.hf-combo-option.is-active[aria-selected="true"] { color: var(--brand-ink); }
+.hf-combo-empty { padding: 8px 10px; color: var(--faint); }
+
+/* =========================================================================
+   Toasts -- files/static/files/js/hf_toast.js
+   Misma paleta que los flash messages del servidor (.message-*, más arriba)
+   para que un aviso de cliente y uno de servidor se lean como el mismo
+   objeto. La división: `messages` es el canal del servidor tras una
+   navegación; HFToast, el del cliente cuando no la hubo.
+   ========================================================================= */
+.hf-toasts {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 380px;
+    /* El contenedor vacío no debe comerse los clics de la página que hay
+       debajo; cada toast reactiva los suyos. */
+    pointer-events: none;
+}
+
+.hf-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .16s ease, transform .16s ease;
+}
+
+.hf-toast.is-open { opacity: 1; transform: translateY(0); }
+
+.hf-toast-success { background: var(--green-soft); color: var(--green); }
+.hf-toast-error   { background: var(--red-soft);   color: var(--red); }
+.hf-toast-warning { background: var(--warn-soft);  color: var(--warn); }
+.hf-toast-info    { background: var(--blue-soft);  color: var(--blue); }
+
+.hf-toast-message { flex: 1; min-width: 0; }
+
+.hf-toast-close {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: .7;
+}
+
+.hf-toast-close:hover { opacity: 1; }
+
+@media (max-width: 600px) {
+    .hf-toasts { left: 16px; right: 16px; max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hf-toast { transition: none; }
+    .hf-combo::after { transition: none; }
 }

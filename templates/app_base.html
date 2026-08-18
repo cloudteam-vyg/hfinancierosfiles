@@ -25,17 +25,16 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
         <span>Nuevo archivo</span>
       </a>
-      <a href="{% url 'files:customer-list' %}" class="app-nav-item{% if '/clientes/' in request.path %} active{% endif %}">
+      {% comment %}Sin entradas para "Clases de cliente" ni "Tipos de
+      actividad": son catálogos que solo se necesitan a media tarea (al dar de
+      alta un cliente), así que su alta vive en el modal del propio formulario
+      y sus pantallas de mantenimiento se alcanzan desde el pie de ese modal.
+      Las rutas /clases-cliente/ y /tipos-actividad/ se plegan al item de
+      Clientes, de quien son dependencias, para que la navegación no quede sin
+      nada resaltado al entrar en ellas.{% endcomment %}
+      <a href="{% url 'files:customer-list' %}" class="app-nav-item{% if '/clientes/' in request.path or '/clases-cliente/' in request.path or '/tipos-actividad/' in request.path %} active{% endif %}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5"></path><circle cx="12" cy="7" r="4"></circle></svg>
         <span>Clientes</span>
-      </a>
-      <a href="{% url 'files:classname-list' %}" class="app-nav-item{% if '/clases-cliente/' in request.path %} active{% endif %}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
-        <span>Clases de cliente</span>
-      </a>
-      <a href="{% url 'files:activitytype-list' %}" class="app-nav-item{% if '/tipos-actividad/' in request.path %} active{% endif %}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"></path></svg>
-        <span>Tipos de actividad</span>
       </a>
       <a href="{% url 'files:person-list' %}" class="app-nav-item{% if '/personas/' in request.path %} active{% endif %}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21c0-3.3-3.6-6-8-6s-8 2.7-8 6"></path><circle cx="12" cy="8" r="4"></circle></svg>

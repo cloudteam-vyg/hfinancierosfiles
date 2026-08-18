@@ -6,7 +6,8 @@ from authentication.signals import STANDARD_GROUP_NAME, ensure_standard_group
 class Command(BaseCommand):
     help = (
         f"Crea (si falta) el grupo '{STANDARD_GROUP_NAME}' y fija sus permisos "
-        "add/change sobre Customer, Person, FileArchive y ArchiveClass. Idempotente."
+        "add/change sobre Customer, Person, FileArchive, ArchiveClass, ClassName "
+        "y ActivityType. Idempotente."
     )
 
     def handle(self, *args, **options):

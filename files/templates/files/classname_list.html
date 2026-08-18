@@ -6,12 +6,9 @@
     <h1>Clases de cliente</h1>
     <p>{{ page_obj.paginator.count }} clase{{ page_obj.paginator.count|pluralize }} de cliente</p>
   </div>
-  {% if perms.files.add_classname %}
-    <a href="{% url 'files:classname-create' %}" class="btn btn-primary">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
-      <span>Nueva clase</span>
-    </a>
-  {% endif %}
+  {% comment %}Sin botón "Nueva clase": esta pantalla es solo mantenimiento
+  (editar/eliminar). El alta vive en el modal de alta rápida del formulario que
+  la necesita -- ver files/urls.py.{% endcomment %}
 </div>
 
 <div class="grid-table">
@@ -37,7 +34,8 @@
   </div>
   {% empty %}
   <div class="grid-row-empty">
-    No hay clases de cliente registradas. Hace falta al menos una para poder dar de alta un cliente.
+    No hay clases de cliente registradas. Se crean desde el botón «+ Nueva» que
+    hay junto al campo «Clase de cliente» al dar de alta un cliente.
   </div>
   {% endfor %}
 </div>

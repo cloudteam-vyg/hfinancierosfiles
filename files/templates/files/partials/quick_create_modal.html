@@ -1,0 +1,67 @@
+{% comment %}Shell del modal de alta rápida. Lo maneja
+files/static/files/js/quick_create_modals.js -- el cableado es 100%
+declarativo, así que un modal nuevo es solo un {% include %}, sin JS.
+
+Parámetros:
+  modal_id          (oblig.) id del overlay; TAMBIÉN el prefijo de todo id
+                    derivado, que es lo que evita colisiones entre dos
+                    instancias en la misma página.
+  title             (oblig.) texto del <h3>
+  submit_label      (oblig.) texto del botón primario
+  quick_create_url  (oblig.) URL ya resuelta -- {% url %} no se puede pasar
+                    como argumento de {% include with %}, hay que resolverla
+                    antes con {% url ... as ... %}
+  target_select     (oblig.) id del <select> que recibe la opción nueva
+  body_template     (opc.) plantilla de los campos; por defecto, solo "name"
+  field_label       (opc.) etiqueta del campo name; por defecto "Nombre"
+  manage_url        (opc.) enlace "Gestionar catálogos"; sin él no hay pie
+  manage_label      (opc.) texto de ese enlace
+
+IMPORTANTE: este include va SIEMPRE al nivel superior de app_content, nunca
+dentro de otro modal, aunque se abra "desde" él. Los modales se apilan
+lógicamente (data-stack-depth), no en el DOM: si un overlay viviera dentro de
+otro, el querySelectorAll("[data-modal-close]") del padre cablearía los
+botones del hijo para cerrar al padre, resetModalForm() resetearía el
+formulario equivocado y openModal() enfocaría un campo del hijo.
+
+Sin `only` a propósito: csrf_token y perms vienen del contexto padre.
+El gate de permiso va FUERA, envolviendo el {% include %}, para que la
+condición del botón "+" y la del modal sean el mismo literal en la misma
+plantilla y se puedan grepear juntas.{% endcomment %}
+<div class="modal-overlay hidden" id="{{ modal_id }}">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
+    <div class="hf-modal-header">
+      <h3 id="{{ modal_id }}-title">{{ title }}</h3>
+      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
+    </div>
+    {% comment %}data-hf-searchable también aquí: los <select> del cuerpo de
+    cliente pueden crecer igual que los de la página. La lista del combobox se
+    porta a <body>, así que el overflow y el transform de .modal-content no la
+    recortan.{% endcomment %}
+    <form id="{{ modal_id }}-form" class="hf-modal-body" novalidate data-hf-validate
+          data-hf-searchable data-hf-searchable-min-options="8"
+          data-quick-create-url="{{ quick_create_url }}"
+          data-target-select="{{ target_select }}">
+      {% csrf_token %}
+      {% comment %}Reservado en exclusiva a los errores del SERVIDOR, que
+      escribe showErrors(). Los de cliente los pinta hf_form_validate.js campo
+      a campo, con un toast de resumen.{% endcomment %}
+      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
+      <p class="form-legend" aria-hidden="true">Los campos con <span class="form-required">*</span> son obligatorios.</p>
+      {% include body_template|default:"files/partials/quick_create_name_field.html" %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">{{ submit_label }}</button>
+        <button type="button" class="btn" data-modal-close>Cancelar</button>
+      </div>
+      {% if manage_url %}
+        {% comment %}target=_blank a propósito: este enlace suele pulsarse con
+        el formulario padre a medio llenar, y navegar en la misma pestaña lo
+        perdería. Es también la única vía al listado desde que el catálogo
+        salió del navbar.{% endcomment %}
+        <p class="hf-modal-footer">
+          <a href="{{ manage_url }}" target="_blank" rel="noopener">{{ manage_label|default:"Gestionar catálogos" }}<span class="hf-sr-only"> (se abre en una pestaña nueva)</span></a>
+        </p>
+      {% endif %}
+    </form>
+  </div>
+</div>

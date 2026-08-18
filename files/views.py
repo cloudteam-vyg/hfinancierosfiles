@@ -19,7 +19,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .frontend_forms import (
-    FileArchiveEditForm, FileArchiveUploadForm, QuickActivityTypeForm,
+    FileArchiveEditForm, FileArchiveUploadForm, PersonForm, QuickActivityTypeForm,
     QuickArchiveClassForm, QuickClassNameForm, QuickCustomerForm,
 )
 from .models import ActivityType, ClassName, Customer, FileArchive, Person
@@ -58,9 +58,6 @@ def _open_file_or_404(obj):
 # Clase de cliente (ClassName) -- catálogo requerido para dar de alta Clientes
 # =============================================================================
 
-CLASSNAME_FIELDS = ("name", "description")
-
-
 class ClassNameListView(LoginRequiredMixin, ListView):
     model = ClassName
     template_name = "files/classname_list.html"
@@ -71,17 +68,13 @@ class ClassNameListView(LoginRequiredMixin, ListView):
     # estándar" tiene add/change pero no view (ver authentication/signals.py).
 
 
-class ClassNameCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    model = ClassName
-    fields = CLASSNAME_FIELDS
-    template_name = "files/classname_form.html"
-    permission_required = "files.add_classname"
-    success_url = reverse_lazy("files:classname-list")
-
-
+# No hay CreateView: el alta vive solo en el modal
+# (classname_quick_create_view). Los campos se declaran aquí en vez de en una
+# constante de módulo porque ya solo los usa esta vista -- la constante existía
+# para que la pareja Create/Update no derivara.
 class ClassNameUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = ClassName
-    fields = CLASSNAME_FIELDS
+    fields = ("name", "description")
     template_name = "files/classname_form.html"
     permission_required = "files.change_classname"
     success_url = reverse_lazy("files:classname-list")
@@ -106,9 +99,6 @@ class ClassNameDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
 # Tipo de actividad (ActivityType) -- el otro catálogo que exige el Cliente
 # =============================================================================
 
-ACTIVITYTYPE_FIELDS = ("name", "description")
-
-
 class ActivityTypeListView(LoginRequiredMixin, ListView):
     model = ActivityType
     template_name = "files/activitytype_list.html"
@@ -117,17 +107,10 @@ class ActivityTypeListView(LoginRequiredMixin, ListView):
     ordering = ("name",)
 
 
-class ActivityTypeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    model = ActivityType
-    fields = ACTIVITYTYPE_FIELDS
-    template_name = "files/activitytype_form.html"
-    permission_required = "files.add_activitytype"
-    success_url = reverse_lazy("files:activitytype-list")
-
-
+# Sin CreateView, igual que ClassName: ver el comentario de arriba.
 class ActivityTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = ActivityType
-    fields = ACTIVITYTYPE_FIELDS
+    fields = ("name", "description")
     template_name = "files/activitytype_form.html"
     permission_required = "files.change_activitytype"
     success_url = reverse_lazy("files:activitytype-list")
@@ -194,9 +177,6 @@ class CustomerDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
 # Persona (Person)
 # =============================================================================
 
-PERSON_FIELDS = ("customer", "name", "position", "email", "phone_number")
-
-
 class PersonListView(LoginRequiredMixin, ListView):
     model = Person
     template_name = "files/person_list.html"
@@ -205,9 +185,12 @@ class PersonListView(LoginRequiredMixin, ListView):
     ordering = ("name",)
 
 
+# Estas dos usan form_class (PersonForm) y no `fields`: es la única forma de
+# fijar el queryset del <select> de cliente y evitar el N+1 de
+# Customer.__str__. Ver files/frontend_forms.py::_customer_choices.
 class PersonCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Person
-    fields = PERSON_FIELDS
+    form_class = PersonForm
     template_name = "files/person_form.html"
     permission_required = "files.add_person"
     success_url = reverse_lazy("files:person-list")
@@ -215,7 +198,7 @@ class PersonCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 
 class PersonUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Person
-    fields = PERSON_FIELDS
+    form_class = PersonForm
     template_name = "files/person_form.html"
     permission_required = "files.change_person"
     success_url = reverse_lazy("files:person-list")

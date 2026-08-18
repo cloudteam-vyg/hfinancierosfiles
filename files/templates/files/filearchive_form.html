@@ -1,16 +1,34 @@
 {% extends "app_base.html" %}
+{% load static %}
 {% block title %}Editar archivo{% endblock %}
 {% block app_content %}
 <h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">Editar archivo</h1>
 <div class="card" style="max-width: 560px;">
-  <form method="post">
+  <form method="post" data-hf-validate data-hf-searchable data-hf-searchable-min-options="8">
     {% csrf_token %}
     {{ form.non_field_errors }}
+    {% comment %}Leyenda entera con aria-hidden: marcar solo el * de dentro
+    haría que un lector de pantalla leyera "Los campos con son obligatorios".
+    Es una clave visual para una convención visual; quien usa lector ya recibe
+    la obligatoriedad campo a campo por required/aria-required.{% endcomment %}
+    <p class="form-legend" aria-hidden="true">Los campos con <span class="form-required">*</span> son obligatorios.</p>
     {% for field in form %}
       <div class="form-field">
         {{ field.errors }}
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
+        {% comment %}El asterisco se DERIVA de field.field.required: escrito a
+        mano mentiría en cuanto cambie un blank= en files/models.py.{% endcomment %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
+        {% comment %}Clase de archivo lleva alta rápida al lado: es el único
+        catálogo sin pantalla propia, así que sin esto desde aquí no había
+        forma de crear una.{% endcomment %}
+        {% if field.name == "archive_class" and perms.files.add_archiveclass %}
+          <div class="field-with-action">
+            {{ field }}
+            <button type="button" class="btn btn-sm" data-modal-open="archive-class-modal">+ Nueva</button>
+          </div>
+        {% else %}
+          {{ field }}
+        {% endif %}
         {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
       </div>
     {% endfor %}
@@ -21,4 +39,17 @@
     </div>
   </form>
 </div>
+
+{% url 'files:archive-class-quick-create' as archive_class_qc_url %}
+{% if perms.files.add_archiveclass %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="archive-class-modal" title="Nueva clase de archivo" submit_label="Crear clase" quick_create_url=archive_class_qc_url target_select="id_archive_class" %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'files/js/hf_utils.js' %}"></script>
+  <script src="{% static 'files/js/hf_toast.js' %}"></script>
+  <script src="{% static 'files/js/hf_form_validate.js' %}"></script>
+  <script src="{% static 'files/js/hf_searchable_select.js' %}"></script>
+  <script src="{% static 'files/js/quick_create_modals.js' %}"></script>
 {% endblock %}

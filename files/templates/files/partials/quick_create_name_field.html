@@ -1,0 +1,17 @@
+{% comment %}Cuerpo por defecto de quick_create_modal.html: los dos campos que
+comparten los tres catálogos (ClassName, ActivityType, ArchiveClass).
+
+Los ids se derivan de modal_id, que llega del include padre (sin `only`), para
+que dos instancias en la misma página no colisionen.
+
+`description` es opcional en el modelo, y hasta ahora el modal no lo pedía
+mientras la pantalla completa sí -- se exponía el campo a medias según por
+dónde entraras.{% endcomment %}
+<div class="form-field">
+  <label for="{{ modal_id }}-name">{{ field_label|default:"Nombre" }}<span class="form-required" aria-hidden="true">*</span></label>
+  <input type="text" id="{{ modal_id }}-name" name="name" maxlength="100" required>
+</div>
+<div class="form-field">
+  <label for="{{ modal_id }}-description">Descripción</label>
+  <textarea id="{{ modal_id }}-description" name="description" rows="2"></textarea>
+</div>

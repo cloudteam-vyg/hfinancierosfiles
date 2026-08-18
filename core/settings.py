@@ -38,6 +38,21 @@ ALLOWED_HOSTS = env.list(
 # "http://<host>" mientras el navegador envía "https://<host>" -> 403.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+#--- Seguridad (HTTPS, HSTS, cookies seguras) --------------------------------
+# Se fuerza HTTPS en producción. En desarrollo se sirve por http, así que se deja normal.
+# nginx ya redirige a https, pero si se accede directo a gunicorn por http Django no lo sabe y
+# no redirige. Esto evita que un usuario llegue por http y se quede ahí.
+#
+# Condicionado a DEBUG (mismo criterio que las cookies de más abajo): sin el
+# `not DEBUG`, esto redirige TAMBIÉN en desarrollo y bajo la suite de tests, y
+# runserver por http deja de servir nada -- toda petición contesta 301.
+SECURE_SSL_REDIRECT = not DEBUG
+
+# El healthcheck de Dokku (ver CHECKS) pide /healthz/ por http desde dentro: si
+# redirige, el deploy se queda esperando un 200 que no llega y se cae. Es una
+# ruta interna sin datos, así que exentarla no expone nada.
+SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+
 # Django >= 4.0 valida el header Origin en toda petición POST y exige que el
 # origen incluya el ESQUEMA. Se derivan de ALLOWED_HOSTS para no mantener la
 # misma lista de dominios en dos sitios; se omiten los de desarrollo, que
