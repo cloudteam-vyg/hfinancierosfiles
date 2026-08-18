@@ -166,11 +166,18 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --- Subida multipart al servidor (files/views.py::file_archive_upload_view) ---
 MAX_UPLOAD_SIZE_MB = env.int("MAX_UPLOAD_SIZE_MB", default=300)
 
-# Límites de Django para poder recibir hasta MAX_UPLOAD_SIZE_MB sin errores de
-# memoria: por encima de FILE_UPLOAD_MAX_MEMORY_SIZE, Django derrama el
-# archivo a un temporal en disco automáticamente (comportamiento nativo).
-DATA_UPLOAD_MAX_MEMORY_SIZE = 335544320  # ~320 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760   # 10 MB
+# OJO: DATA_UPLOAD_MAX_MEMORY_SIZE **no** limita el tamaño de los archivos
+# subidos -- Django excluye de esa cuenta los datos de un file upload y solo
+# mide el resto del cuerpo (los campos de texto). Tenerlo en cientos de MB no
+# permitía subir más: solo desactivaba la protección contra un POST enorme sin
+# archivos. El tope real de archivo lo aplica validate_upload_size
+# (MAX_UPLOAD_SIZE_MB) y, antes que él, client-max-body-size de nginx.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 MB de campos de formulario
+
+# Por encima de esto Django derrama el archivo a un temporal en disco en vez
+# de mantenerlo en memoria. Este sí conviene alto: evita escribir en disco los
+# adjuntos pequeños, que son la mayoría.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # Sin Redis ni Celery: la subida es síncrona (el archivo queda disponible al
 # guardarse) y no hay trabajo en segundo plano que encolar. El cache queda en
