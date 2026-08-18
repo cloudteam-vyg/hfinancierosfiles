@@ -17,7 +17,6 @@ autenticadas de Django — `MEDIA_URL` no se expone públicamente.
 |---|---|
 | Backend | Django 4.2 (Python 3.11) |
 | Base de datos | PostgreSQL (vía `DATABASE_URL`) |
-| Cache | Redis (Celery queda instalado pero hoy no se usa) |
 | Servidor | Gunicorn con workers `gevent` |
 | Estáticos | WhiteNoise (`CompressedManifestStaticFilesStorage`) |
 | Frontend | Django Templates + JavaScript plano, **sin build step** |
@@ -52,9 +51,8 @@ python manage.py collectstatic --noinput
 python manage.py runserver
 ```
 
-No hace falta levantar Celery: la aplicación no encola nada. La
-infraestructura (`files/tasks.py`, el proceso `worker` del Procfile) se
-conserva por si más adelante se necesita trabajo pesado en segundo plano.
+No hay servicios adicionales que levantar: ni Redis, ni colas, ni workers.
+La aplicación solo necesita PostgreSQL.
 
 ### Variables de entorno
 
@@ -67,16 +65,13 @@ Se leen del `.env` de la raíz vía `django-environ` (ver `.env.example`).
 | `ALLOWED_HOSTS` | Sí en prod | Lista separada por comas |
 | `DATABASE_URL` | Sí | Ej. `postgresql://user:pass@host:5432/db` |
 | `MAX_UPLOAD_SIZE_MB` | No (`300`) | Tope de subida; también define el tope de previsualización de PDF |
-| `REDIS_URL` | No (`…/0`) | Cache de Django |
-| `CELERY_BROKER_URL` | No (`…/1`) | Broker de Celery |
-| `CELERY_RESULT_BACKEND` | No (= broker) | Backend de resultados |
 
 ---
 
 ## Estructura del proyecto
 
 ```
-core/            Configuración del proyecto (settings, urls, celery, wsgi)
+core/            Configuración del proyecto (settings, urls, wsgi)
   views.py       Dashboard y /healthz/ (usado por el healthcheck de Dokku)
 files/           App de dominio
   models.py      ClassName, ActivityType, Customer, Person, ArchiveClass, FileArchive
@@ -84,7 +79,6 @@ files/           App de dominio
   uploads.py     Reglas compartidas de subida (tope de tamaño, sellado de metadatos)
   forms.py       Formulario del Admin
   frontend_forms.py  Formularios del frontend propio
-  tasks.py       run_post_processing (Celery)
   admin.py       Admin personalizado
   static/files/  CSS y JS propios + librerías vendorizadas en js/vendor/
   templates/     Plantillas de la app

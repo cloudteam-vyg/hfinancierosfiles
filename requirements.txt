@@ -8,11 +8,6 @@ gunicorn==21.2.0
 gevent==24.2.1                  # worker class (ver Procfile)
 whitenoise==6.6.0               # sirve /static/ en producción
 
-# --- Procesamiento asíncrono ---
-celery[redis]==5.6.3
-redis>=4.5.2,!=4.5.5,!=5.0.2,<6.5   # se excluyen versiones con bugs conocidos
-django-redis==5.4.0             # backend de cache (CACHES)
-
 # --- Dominio ---
 pypdf==6.15.0                   # trunca PDFs a N páginas para la preview
 django-simple-history==3.10.1   # auditoría de FileArchive

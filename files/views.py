@@ -54,6 +54,54 @@ def _open_file_or_404(obj):
         raise Http404
 
 # =============================================================================
+# Clase de cliente (ClassName) -- catálogo requerido para dar de alta Clientes
+# =============================================================================
+
+CLASSNAME_FIELDS = ("name", "description")
+
+
+class ClassNameListView(LoginRequiredMixin, ListView):
+    model = ClassName
+    template_name = "files/classname_list.html"
+    context_object_name = "classnames"
+    paginate_by = 25
+    ordering = ("name",)
+    # Sin permission_required, igual que Cliente/Persona: el grupo "Usuarios
+    # estándar" tiene add/change pero no view (ver authentication/signals.py).
+
+
+class ClassNameCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = ClassName
+    fields = CLASSNAME_FIELDS
+    template_name = "files/classname_form.html"
+    permission_required = "files.add_classname"
+    success_url = reverse_lazy("files:classname-list")
+
+
+class ClassNameUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = ClassName
+    fields = CLASSNAME_FIELDS
+    template_name = "files/classname_form.html"
+    permission_required = "files.change_classname"
+    success_url = reverse_lazy("files:classname-list")
+
+
+class ClassNameDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = ClassName
+    template_name = "files/classname_confirm_delete.html"
+    permission_required = "files.delete_classname"
+    success_url = reverse_lazy("files:classname-list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Customer.classname es on_delete=CASCADE: borrar una clase se lleva
+        # por delante a sus clientes (y con ellos sus archivos). El usuario
+        # tiene que verlo antes de confirmar.
+        context["customer_count"] = self.object.customers.count()
+        return context
+
+
+# =============================================================================
 # Cliente (Customer)
 # =============================================================================
 
@@ -404,10 +452,9 @@ def _upload_page_context(form):
 def _create_file_archive(form, uploaded, user):
     """Persiste el registro. El archivo queda disponible de inmediato.
 
-    Ya no se encola nada en Celery: la escritura en disco es síncrona y no
-    hay trabajo pesado que diferir, así que un archivo nunca queda "en
-    proceso". `files/tasks.py::run_post_processing` sigue existiendo por si
-    vuelve a hacer falta un pipeline asíncrono.
+    La escritura en disco es síncrona y no hay trabajo pesado que diferir,
+    así que no existe cola ni estado intermedio: al volver de aquí el
+    archivo ya se puede descargar y previsualizar.
     """
     obj = stamp_upload_metadata(form.save(commit=False), uploaded, user)
     obj.save()

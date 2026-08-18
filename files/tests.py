@@ -472,3 +472,67 @@ class FileArchiveMissingBytesTests(ArchiveFixtureTestCase):
         pdf.file.storage.delete(pdf.file.name)
         resp = self.client.get(reverse("files:archive-preview", args=[pdf.pk]))
         self.assertEqual(resp.status_code, 404)
+
+
+class ClassNameCrudTests(TestCase):
+    """CRUD de "Clase de cliente" en el frontend propio: mismo patrón y
+    mismas reglas de permisos que Cliente/Persona."""
+
+    def setUp(self):
+        self.classname = ClassName.objects.create(name="Persona moral")
+
+    def _login(self, *codenames):
+        user = User.objects.create_user(f"cn_{'_'.join(codenames) or 'plain'}", password="x")
+        user.groups.clear()  # el grupo estándar se asigna solo; aquí se controla
+        for codename in codenames:
+            user.user_permissions.add(Permission.objects.get(codename=codename))
+        self.client.force_login(user)
+        return user
+
+    def test_list_is_visible_to_any_authenticated_user(self):
+        self._login()
+        resp = self.client.get(reverse("files:classname-list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Persona moral")
+
+    def test_create_requires_permission(self):
+        self._login()
+        resp = self.client.get(reverse("files:classname-create"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_create_with_permission(self):
+        self._login("add_classname")
+        resp = self.client.post(
+            reverse("files:classname-create"),
+            {"name": "Persona física", "description": "Contribuyente individual"},
+        )
+        self.assertRedirects(resp, reverse("files:classname-list"))
+        self.assertTrue(ClassName.objects.filter(name="Persona física").exists())
+
+    def test_update_with_permission(self):
+        self._login("change_classname")
+        resp = self.client.post(
+            reverse("files:classname-update", args=[self.classname.pk]),
+            {"name": "Persona moral S.A.", "description": ""},
+        )
+        self.assertRedirects(resp, reverse("files:classname-list"))
+        self.classname.refresh_from_db()
+        self.assertEqual(self.classname.name, "Persona moral S.A.")
+
+    def test_delete_requires_permission_not_granted_to_standard_group(self):
+        # El grupo "Usuarios estándar" nunca recibe delete (signals.py).
+        self._login("add_classname", "change_classname")
+        resp = self.client.post(reverse("files:classname-delete", args=[self.classname.pk]))
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(ClassName.objects.filter(pk=self.classname.pk).exists())
+
+    def test_delete_page_warns_about_dependent_customers(self):
+        activity = ActivityType.objects.create(name="Actividad")
+        Customer.objects.create(
+            classname=self.classname, activity_type=activity, name="Cliente ligado",
+            date_of_constitution="2020-01-01",
+        )
+        self._login("delete_classname")
+        resp = self.client.get(reverse("files:classname-delete", args=[self.classname.pk]))
+        self.assertEqual(resp.context["customer_count"], 1)
+        self.assertContains(resp, "se eliminarán también")

@@ -5,6 +5,12 @@ from . import views
 app_name = "files"
 
 urlpatterns = [
+    # --- Clases de cliente (ClassName) ---
+    path("clases-cliente/", views.ClassNameListView.as_view(), name="classname-list"),
+    path("clases-cliente/nueva/", views.ClassNameCreateView.as_view(), name="classname-create"),
+    path("clases-cliente/<int:pk>/editar/", views.ClassNameUpdateView.as_view(), name="classname-update"),
+    path("clases-cliente/<int:pk>/eliminar/", views.ClassNameDeleteView.as_view(), name="classname-delete"),
+
     # --- Clientes (Customer) ---
     path("clientes/", views.CustomerListView.as_view(), name="customer-list"),
     path("clientes/nuevo/", views.CustomerCreateView.as_view(), name="customer-create"),

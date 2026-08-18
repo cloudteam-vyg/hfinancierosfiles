@@ -29,6 +29,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5"></path><circle cx="12" cy="7" r="4"></circle></svg>
         <span>Clientes</span>
       </a>
+      <a href="{% url 'files:classname-list' %}" class="app-nav-item{% if '/clases-cliente/' in request.path %} active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+        <span>Clases de cliente</span>
+      </a>
       <a href="{% url 'files:person-list' %}" class="app-nav-item{% if '/personas/' in request.path %} active{% endif %}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21c0-3.3-3.6-6-8-6s-8 2.7-8 6"></path><circle cx="12" cy="8" r="4"></circle></svg>
         <span>Personas</span>

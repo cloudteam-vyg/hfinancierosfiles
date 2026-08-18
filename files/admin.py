@@ -21,10 +21,12 @@ class PersonAdmin(admin.ModelAdmin):
     search_fields = ('name', 'position', 'email', 'phone_number')
     list_filter = ('customer',)
 
+# Se omiten upload_status y los campos del antiguo pipeline asíncrono
+# (celery_task_id, processed_at, error_message, error_traceback): siguen en la
+# base de datos pero ya no los escribe nadie, así que mostrarlos solo confunde.
 READONLY_ON_EDIT = (
     "original_filename", "file", "file_size", "content_type",
-    "upload_status", "uploaded_by", "celery_task_id", "processed_at",
-    "error_message", "error_traceback", "uploaded_at", "updated_at",
+    "uploaded_by", "uploaded_at", "updated_at",
 )
 
 

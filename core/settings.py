@@ -172,29 +172,7 @@ MAX_UPLOAD_SIZE_MB = env.int("MAX_UPLOAD_SIZE_MB", default=300)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 335544320  # ~320 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760   # 10 MB
 
-# --- Redis / Celery ---------------------------------------------------------
-# Dos bases lógicas separadas a propósito: el cache de Django puede vivir con
-# una política de eviction LRU sin consecuencias graves, pero el broker/result
-# backend de Celery no debería (perder un mensaje en tránsito es perder
-# trabajo, no solo un cache miss).
-REDIS_URL = env("REDIS_URL", default="redis://127.0.0.1:6379/0")
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/1")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-    }
-}
-
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ACKS_LATE = True
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_REJECT_ON_WORKER_LOST = True
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Sin Redis ni Celery: la subida es síncrona (el archivo queda disponible al
+# guardarse) y no hay trabajo en segundo plano que encolar. El cache queda en
+# el backend local en memoria que Django trae por defecto, que basta porque
+# nada de la app cachea; las sesiones viven en la base de datos.

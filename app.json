@@ -1,7 +1,7 @@
 {
   "name": "hfinancierosfiles",
-  "description": "Backoffice Django para gestión de archivos financieros multi-cliente (almacenamiento local en volumen persistente + Celery/Redis para post-procesamiento asíncrono).",
-  "keywords": ["django", "dokku", "celery"],
+  "description": "Backoffice Django para gestión de archivos financieros multi-cliente, con almacenamiento local en volumen persistente.",
+  "keywords": ["django", "dokku"],
   "env": {
     "SECRET_KEY": {
       "description": "Clave secreta de Django. Se genera automáticamente en el primer deploy si no se fija antes con config:set.",
@@ -16,12 +16,6 @@
     },
     "DATABASE_URL": {
       "description": "Inyectada automáticamente por 'dokku postgres:link <servicio> hfinancierosfiles'. No fijar a mano."
-    },
-    "CELERY_BROKER_URL": {
-      "description": "Debe apuntar a REDIS_URL (inyectada por 'dokku redis:link'), idealmente con otra DB lógica (ej. /1)."
-    },
-    "CELERY_RESULT_BACKEND": {
-      "description": "Normalmente el mismo valor que CELERY_BROKER_URL."
     },
     "MAX_UPLOAD_SIZE_MB": {
       "description": "Límite de tamaño de archivo aplicado por la app al recibir la subida multipart.",

@@ -16,6 +16,7 @@ MANAGED_MODELS = (
     ("files", "person"),
     ("files", "filearchive"),
     ("files", "archiveclass"),
+    ("files", "classname"),
 )
 MANAGED_PERMISSION_PREFIXES = ("add", "change")  # explícitamente SIN "delete" ni "view"
 
