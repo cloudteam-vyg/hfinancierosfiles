@@ -485,3 +485,118 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 @media (prefers-reduced-motion: reduce) {
   .preview-panel, .drawer-backdrop { transition: none; }
 }
+
+/* =========================================================================
+   Modal de alta rápida -- componente COMPARTIDO: lo usan /archivos/subir/
+   (cliente y clase de archivo) y el formulario de cliente (clase de cliente
+   y tipo de actividad). Vivía en upload_page.css, que solo carga la página
+   de subida; al usarse en dos sitios pasa aquí. Lo maneja
+   files/static/files/js/quick_create_modals.js
+   ========================================================================= */
+/* --- Select + botón "+ Nuevo" en la misma fila --- */
+.field-with-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-with-action select {
+    flex: 1;
+    min-width: 0;
+}
+
+.field-with-action .btn-sm {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* --- Modal genérico (alta rápida de Cliente / Clase de archivo) ---
+   .hidden es la fuente de verdad del estado oculto (display:none). Cuando
+   se abre, se quita .hidden y en el frame SIGUIENTE se agrega .is-open --
+   ese segundo paso es lo que dispara la transición de opacity/transform en
+   vez de aparecer de golpe (ver openModal() en quick_create_modals.js). */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    background: rgba(0, 0, 0, .5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity .16s ease;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-overlay.is-open {
+    opacity: 1;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transform: translateY(10px) scale(.97);
+    transition: transform .16s ease;
+}
+
+.modal-overlay.is-open .modal-content {
+    transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay, .modal-content {
+        transition: none;
+    }
+}
+
+.hf-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.hf-modal-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.hf-modal-close {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+}
+
+.hf-modal-close:hover {
+    color: var(--ink);
+}
+
+.hf-modal-body {
+    padding: 20px 22px 22px;
+}
+
+.hf-modal-errors:not([hidden]) {
+    margin: 0 0 14px;
+    padding-left: 18px;
+}

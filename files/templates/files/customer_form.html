@@ -1,4 +1,5 @@
 {% extends "app_base.html" %}
+{% load static %}
 {% block title %}{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}{% endblock %}
 {% block app_content %}
 <h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
@@ -10,7 +11,22 @@
       <div class="form-field">
         {{ field.errors }}
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
+        {% comment %}Los dos catálogos obligatorios llevan alta rápida al
+        lado: crear uno no debe obligar a abandonar el formulario a medio
+        llenar.{% endcomment %}
+        {% if field.name == "classname" and perms.files.add_classname %}
+          <div class="field-with-action">
+            {{ field }}
+            <button type="button" class="btn btn-sm" data-modal-open="classname-modal">+ Nueva</button>
+          </div>
+        {% elif field.name == "activity_type" and perms.files.add_activitytype %}
+          <div class="field-with-action">
+            {{ field }}
+            <button type="button" class="btn btn-sm" data-modal-open="activitytype-modal">+ Nuevo</button>
+          </div>
+        {% else %}
+          {{ field }}
+        {% endif %}
         {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
       </div>
     {% endfor %}
@@ -20,4 +36,61 @@
     </div>
   </form>
 </div>
+
+{% if perms.files.add_classname %}
+<!-- Modal: nueva clase de cliente -->
+<div class="modal-overlay hidden" id="classname-modal">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="classname-modal-title">
+    <div class="hf-modal-header">
+      <h3 id="classname-modal-title">Nueva clase de cliente</h3>
+      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
+    </div>
+    <form id="quick-classname-form" class="hf-modal-body" novalidate
+          data-quick-create-url="{% url 'files:classname-quick-create' %}"
+          data-target-select="id_classname">
+      {% csrf_token %}
+      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
+      <div class="form-field">
+        <label for="qcn-name">Nombre</label>
+        <input type="text" id="qcn-name" name="name" maxlength="100" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear clase</button>
+        <button type="button" class="btn" data-modal-close>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if perms.files.add_activitytype %}
+<!-- Modal: nuevo tipo de actividad -->
+<div class="modal-overlay hidden" id="activitytype-modal">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="activitytype-modal-title">
+    <div class="hf-modal-header">
+      <h3 id="activitytype-modal-title">Nuevo tipo de actividad</h3>
+      <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>
+    </div>
+    <form id="quick-activitytype-form" class="hf-modal-body" novalidate
+          data-quick-create-url="{% url 'files:activitytype-quick-create' %}"
+          data-target-select="id_activity_type">
+      {% csrf_token %}
+      <ul class="hf-form-errors hf-modal-errors" hidden></ul>
+      <div class="form-field">
+        <label for="qat-name">Nombre</label>
+        <input type="text" id="qat-name" name="name" maxlength="100" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Crear tipo</button>
+        <button type="button" class="btn" data-modal-close>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'files/js/hf_utils.js' %}"></script>
+  <script src="{% static 'files/js/quick_create_modals.js' %}"></script>
 {% endblock %}

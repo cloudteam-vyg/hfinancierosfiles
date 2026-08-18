@@ -17,6 +17,7 @@ MANAGED_MODELS = (
     ("files", "filearchive"),
     ("files", "archiveclass"),
     ("files", "classname"),
+    ("files", "activitytype"),
 )
 MANAGED_PERMISSION_PREFIXES = ("add", "change")  # explícitamente SIN "delete" ni "view"
 

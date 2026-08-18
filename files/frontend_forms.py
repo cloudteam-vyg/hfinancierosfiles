@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import ArchiveClass, Customer, FileArchive
+from .models import ActivityType, ArchiveClass, ClassName, Customer, FileArchive
 from .uploads import validate_upload_size
 
 DATE_INPUT = forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
@@ -78,4 +78,18 @@ class QuickCustomerForm(forms.ModelForm):
 class QuickArchiveClassForm(forms.ModelForm):
     class Meta:
         model = ArchiveClass
+        fields = ("name",)
+
+
+# Catálogos que exige el alta de Cliente. Se pueden crear desde un modal en el
+# propio formulario para no tener que abandonarlo a medio llenar.
+class QuickClassNameForm(forms.ModelForm):
+    class Meta:
+        model = ClassName
+        fields = ("name",)
+
+
+class QuickActivityTypeForm(forms.ModelForm):
+    class Meta:
+        model = ActivityType
         fields = ("name",)

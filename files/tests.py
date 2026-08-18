@@ -536,3 +536,100 @@ class ClassNameCrudTests(TestCase):
         resp = self.client.get(reverse("files:classname-delete", args=[self.classname.pk]))
         self.assertEqual(resp.context["customer_count"], 1)
         self.assertContains(resp, "se eliminarán también")
+
+
+class ActivityTypeCrudTests(TestCase):
+    """CRUD de "Tipo de actividad", mismo patrón que Clase de cliente."""
+
+    def setUp(self):
+        self.activity = ActivityType.objects.create(name="Comercio")
+
+    def _login(self, *codenames):
+        user = User.objects.create_user(f"at_{'_'.join(codenames) or 'plain'}", password="x")
+        user.groups.clear()
+        for codename in codenames:
+            user.user_permissions.add(Permission.objects.get(codename=codename))
+        self.client.force_login(user)
+        return user
+
+    def test_list_is_visible_to_any_authenticated_user(self):
+        self._login()
+        resp = self.client.get(reverse("files:activitytype-list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Comercio")
+
+    def test_create_requires_permission(self):
+        self._login()
+        self.assertEqual(self.client.get(reverse("files:activitytype-create")).status_code, 403)
+
+    def test_create_with_permission(self):
+        self._login("add_activitytype")
+        resp = self.client.post(
+            reverse("files:activitytype-create"), {"name": "Servicios", "description": ""},
+        )
+        self.assertRedirects(resp, reverse("files:activitytype-list"))
+        self.assertTrue(ActivityType.objects.filter(name="Servicios").exists())
+
+    def test_delete_warns_about_dependent_customers(self):
+        classname = ClassName.objects.create(name="Clase")
+        Customer.objects.create(
+            classname=classname, activity_type=self.activity, name="Cliente ligado",
+            date_of_constitution="2020-01-01",
+        )
+        self._login("delete_activitytype")
+        resp = self.client.get(reverse("files:activitytype-delete", args=[self.activity.pk]))
+        self.assertEqual(resp.context["customer_count"], 1)
+
+
+class CustomerFormQuickCreateTests(TestCase):
+    """Los modales de alta rápida dentro del formulario de Cliente."""
+
+    def _login(self, *codenames):
+        user = User.objects.create_user(f"qc_{'_'.join(codenames) or 'plain'}", password="x")
+        user.groups.clear()
+        for codename in codenames:
+            user.user_permissions.add(Permission.objects.get(codename=codename))
+        self.client.force_login(user)
+        return user
+
+    def test_form_shows_both_modals_when_user_can_create_catalogs(self):
+        self._login("add_customer", "add_classname", "add_activitytype")
+        html = self.client.get(reverse("files:customer-create")).content.decode()
+        self.assertIn('id="classname-modal"', html)
+        self.assertIn('id="activitytype-modal"', html)
+        self.assertIn('data-modal-open="activitytype-modal"', html)
+        self.assertIn("quick_create_modals", html)  # whitenoise le pone hash al nombre
+
+    def test_modals_hidden_for_user_without_catalog_permission(self):
+        self._login("add_customer")
+        html = self.client.get(reverse("files:customer-create")).content.decode()
+        self.assertNotIn('id="classname-modal"', html)
+        self.assertNotIn('id="activitytype-modal"', html)
+
+    def test_activity_type_quick_create_returns_id_and_label(self):
+        self._login("add_activitytype")
+        resp = self.client.post(
+            reverse("files:activitytype-quick-create"), {"name": "Manufactura"},
+        )
+        self.assertEqual(resp.status_code, 201)
+        obj = ActivityType.objects.get(name="Manufactura")
+        self.assertEqual(resp.json(), {"id": obj.pk, "label": "Manufactura"})
+
+    def test_classname_quick_create_returns_id_and_label(self):
+        self._login("add_classname")
+        resp = self.client.post(reverse("files:classname-quick-create"), {"name": "Persona física"})
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["label"], "Persona física")
+
+    def test_quick_create_requires_permission(self):
+        self._login()
+        self.assertEqual(
+            self.client.post(reverse("files:activitytype-quick-create"), {"name": "X"}).status_code,
+            403,
+        )
+
+    def test_quick_create_reports_validation_errors(self):
+        self._login("add_activitytype")
+        resp = self.client.post(reverse("files:activitytype-quick-create"), {"name": ""})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("name", resp.json()["errors"])

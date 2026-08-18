@@ -19,7 +19,8 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .frontend_forms import (
-    FileArchiveEditForm, FileArchiveUploadForm, QuickArchiveClassForm, QuickCustomerForm,
+    FileArchiveEditForm, FileArchiveUploadForm, QuickActivityTypeForm,
+    QuickArchiveClassForm, QuickClassNameForm, QuickCustomerForm,
 )
 from .models import ActivityType, ClassName, Customer, FileArchive, Person
 from .uploads import stamp_upload_metadata
@@ -97,6 +98,50 @@ class ClassNameDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         # Customer.classname es on_delete=CASCADE: borrar una clase se lleva
         # por delante a sus clientes (y con ellos sus archivos). El usuario
         # tiene que verlo antes de confirmar.
+        context["customer_count"] = self.object.customers.count()
+        return context
+
+
+# =============================================================================
+# Tipo de actividad (ActivityType) -- el otro catálogo que exige el Cliente
+# =============================================================================
+
+ACTIVITYTYPE_FIELDS = ("name", "description")
+
+
+class ActivityTypeListView(LoginRequiredMixin, ListView):
+    model = ActivityType
+    template_name = "files/activitytype_list.html"
+    context_object_name = "activity_types"
+    paginate_by = 25
+    ordering = ("name",)
+
+
+class ActivityTypeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = ActivityType
+    fields = ACTIVITYTYPE_FIELDS
+    template_name = "files/activitytype_form.html"
+    permission_required = "files.add_activitytype"
+    success_url = reverse_lazy("files:activitytype-list")
+
+
+class ActivityTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = ActivityType
+    fields = ACTIVITYTYPE_FIELDS
+    template_name = "files/activitytype_form.html"
+    permission_required = "files.change_activitytype"
+    success_url = reverse_lazy("files:activitytype-list")
+
+
+class ActivityTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = ActivityType
+    template_name = "files/activitytype_confirm_delete.html"
+    permission_required = "files.delete_activitytype"
+    success_url = reverse_lazy("files:activitytype-list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Customer.activity_type es on_delete=CASCADE, igual que classname.
         context["customer_count"] = self.object.customers.count()
         return context
 
@@ -507,6 +552,28 @@ def customer_quick_create_view(request):
 @permission_required("files.add_archiveclass", raise_exception=True)
 def archive_class_quick_create_view(request):
     form = QuickArchiveClassForm(request.POST)
+    if form.is_valid():
+        obj = form.save()
+        return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
+    return JsonResponse({"errors": form.errors}, status=400)
+
+
+@login_required
+@require_POST
+@permission_required("files.add_classname", raise_exception=True)
+def classname_quick_create_view(request):
+    form = QuickClassNameForm(request.POST)
+    if form.is_valid():
+        obj = form.save()
+        return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
+    return JsonResponse({"errors": form.errors}, status=400)
+
+
+@login_required
+@require_POST
+@permission_required("files.add_activitytype", raise_exception=True)
+def activity_type_quick_create_view(request):
+    form = QuickActivityTypeForm(request.POST)
     if form.is_valid():
         obj = form.save()
         return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)

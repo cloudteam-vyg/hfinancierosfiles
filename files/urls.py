@@ -11,6 +11,12 @@ urlpatterns = [
     path("clases-cliente/<int:pk>/editar/", views.ClassNameUpdateView.as_view(), name="classname-update"),
     path("clases-cliente/<int:pk>/eliminar/", views.ClassNameDeleteView.as_view(), name="classname-delete"),
 
+    # --- Tipos de actividad (ActivityType) ---
+    path("tipos-actividad/", views.ActivityTypeListView.as_view(), name="activitytype-list"),
+    path("tipos-actividad/nuevo/", views.ActivityTypeCreateView.as_view(), name="activitytype-create"),
+    path("tipos-actividad/<int:pk>/editar/", views.ActivityTypeUpdateView.as_view(), name="activitytype-update"),
+    path("tipos-actividad/<int:pk>/eliminar/", views.ActivityTypeDeleteView.as_view(), name="activitytype-delete"),
+
     # --- Clientes (Customer) ---
     path("clientes/", views.CustomerListView.as_view(), name="customer-list"),
     path("clientes/nuevo/", views.CustomerCreateView.as_view(), name="customer-create"),
@@ -34,4 +40,6 @@ urlpatterns = [
     # --- Alta rápida (modales de /archivos/subir/) ---
     path("api/customers/quick-create/", views.customer_quick_create_view, name="customer-quick-create"),
     path("api/archive-classes/quick-create/", views.archive_class_quick_create_view, name="archive-class-quick-create"),
+    path("api/class-names/quick-create/", views.classname_quick_create_view, name="classname-quick-create"),
+    path("api/activity-types/quick-create/", views.activity_type_quick_create_view, name="activitytype-quick-create"),
 ]
