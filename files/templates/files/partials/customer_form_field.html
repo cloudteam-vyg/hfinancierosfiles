@@ -1,0 +1,51 @@
+{% comment %}Un campo del formulario de Cliente, con su alta rápida si la tiene.
+
+Lo comparten las DOS superficies de alta de Cliente:
+
+  - files/templates/files/customer_form.html         (/clientes/nuevo/, sin prefijo)
+  - files/templates/files/partials/quick_create_customer_fields.html
+                                                    (modal de /archivos/subir/, "qc-")
+
+Existe justamente porque no lo hacía: el modal tenía sus propios <select>
+escritos a mano y se quedó en 4 campos mientras la pantalla dedicada crecía a 13
+-- `person_type` y `notes` llegaron al modelo y solo aparecieron en una de las
+dos. Con un único partial, un campo nuevo (y su botón "+", si lo lleva) se añade
+en un solo sitio.
+
+Parámetros:
+  field         (oblig.) el BoundField a renderizar
+  modal_prefix  (opc.) prefijo del id de los modales de alta rápida a los que
+                apuntan los botones "+". Vacío en la pantalla dedicada
+                (classname-modal); "qc-" en el modal, cuyos hijos de segundo
+                nivel se llaman qc-classname-modal, etc.
+
+Sin `only`: `perms` viene del contexto padre.{% endcomment %}
+<div class="form-field{% if field.name in form_wide_fields %} form-field--wide{% endif %}">
+  {{ field.errors }}
+  {% comment %}El asterisco se DERIVA de field.field.required: escrito a
+  mano mentiría en cuanto cambie un blank= en files/models.py.{% endcomment %}
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
+  {% comment %}Los tres catálogos de cliente llevan alta rápida al lado: crear
+  uno no debe obligar a abandonar el formulario a medio llenar. Da igual que
+  person_type sea opcional -- el modal es su ÚNICA vía de alta, así que sin el
+  "+" no se podría rellenar nunca.{% endcomment %}
+  {% if field.name == "classname" and perms.files.add_classname %}
+    <div class="field-with-action">
+      {{ field }}
+      <button type="button" class="btn btn-sm" data-modal-open="{{ modal_prefix }}classname-modal">+ Nueva</button>
+    </div>
+  {% elif field.name == "activity_type" and perms.files.add_activitytype %}
+    <div class="field-with-action">
+      {{ field }}
+      <button type="button" class="btn btn-sm" data-modal-open="{{ modal_prefix }}activitytype-modal">+ Nuevo</button>
+    </div>
+  {% elif field.name == "person_type" and perms.files.add_persontype %}
+    <div class="field-with-action">
+      {{ field }}
+      <button type="button" class="btn btn-sm" data-modal-open="{{ modal_prefix }}persontype-modal">+ Nuevo</button>
+    </div>
+  {% else %}
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+</div>

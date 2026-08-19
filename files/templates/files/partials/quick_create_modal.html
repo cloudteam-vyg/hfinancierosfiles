@@ -14,6 +14,9 @@ Parámetros:
   target_select     (oblig.) id del <select> que recibe la opción nueva
   body_template     (opc.) plantilla de los campos; por defecto, solo "name"
   field_label       (opc.) etiqueta del campo name; por defecto "Nombre"
+  size              (opc.) "wide" ensancha el modal a 680px, para un cuerpo de
+                    dos columnas (el de Cliente). Sin él se queda en 420px, que
+                    es lo que necesitan los cuerpos de un solo campo.
   manage_url        (opc.) enlace "Gestionar catálogos"; sin él no hay pie
   manage_label      (opc.) texto de ese enlace
 
@@ -29,7 +32,7 @@ El gate de permiso va FUERA, envolviendo el {% include %}, para que la
 condición del botón "+" y la del modal sean el mismo literal en la misma
 plantilla y se puedan grepear juntas.{% endcomment %}
 <div class="modal-overlay hidden" id="{{ modal_id }}">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
+  <div class="modal-content{% if size == "wide" %} modal-content--wide{% endif %}" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
     <div class="hf-modal-header">
       <h3 id="{{ modal_id }}-title">{{ title }}</h3>
       <button type="button" class="hf-modal-close" data-modal-close aria-label="Cerrar">&times;</button>

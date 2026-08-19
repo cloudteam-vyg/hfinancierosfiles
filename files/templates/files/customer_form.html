@@ -12,30 +12,14 @@
     Es una clave visual para una convención visual; quien usa lector ya recibe
     la obligatoriedad campo a campo por required/aria-required.{% endcomment %}
     <p class="form-legend" aria-hidden="true">Los campos con <span class="form-required">*</span> son obligatorios.</p>
+    {% comment %}Cada campo lo pinta el partial COMPARTIDO con el cuerpo del
+    modal "+ Nuevo cliente" de /archivos/subir/. Sin prefijo: los "+" de esta
+    pantalla abren los modales de primer nivel (classname-modal, etc.), no los
+    qc-* del modal. Un campo nuevo, o un botón "+" nuevo, se toca en un solo
+    sitio -- tenerlo en dos es lo que dejó el modal en 4 campos mientras esta
+    pantalla llegaba a 13.{% endcomment %}
     {% for field in form %}
-      <div class="form-field">
-        {{ field.errors }}
-        {% comment %}El asterisco se DERIVA de field.field.required: escrito a
-        mano mentiría en cuanto cambie un blank= en files/models.py.{% endcomment %}
-        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
-        {% comment %}Los dos catálogos obligatorios llevan alta rápida al
-        lado: crear uno no debe obligar a abandonar el formulario a medio
-        llenar.{% endcomment %}
-        {% if field.name == "classname" and perms.files.add_classname %}
-          <div class="field-with-action">
-            {{ field }}
-            <button type="button" class="btn btn-sm" data-modal-open="classname-modal">+ Nueva</button>
-          </div>
-        {% elif field.name == "activity_type" and perms.files.add_activitytype %}
-          <div class="field-with-action">
-            {{ field }}
-            <button type="button" class="btn btn-sm" data-modal-open="activitytype-modal">+ Nuevo</button>
-          </div>
-        {% else %}
-          {{ field }}
-        {% endif %}
-        {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
-      </div>
+      {% include "files/partials/customer_form_field.html" with field=field %}
     {% endfor %}
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">Guardar</button>
@@ -58,6 +42,12 @@ antes con {% url ... as ... %} (mismo idiom que app_base.html).{% endcomment %}
 {% url 'files:activitytype-list' as activitytype_list_url %}
 {% if perms.files.add_activitytype %}
   {% include "files/partials/quick_create_modal.html" with modal_id="activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="id_activity_type" manage_url=activitytype_list_url %}
+{% endif %}
+
+{% url 'files:persontype-quick-create' as persontype_qc_url %}
+{% url 'files:persontype-list' as persontype_list_url %}
+{% if perms.files.add_persontype %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="persontype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=persontype_qc_url target_select="id_person_type" manage_url=persontype_list_url %}
 {% endif %}
 {% endblock %}
 

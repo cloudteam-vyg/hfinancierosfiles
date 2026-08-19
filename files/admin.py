@@ -5,14 +5,16 @@ from rangefilter.filters import DateTimeRangeFilter
 from simple_history.admin import SimpleHistoryAdmin
 
 from .forms import FileArchiveAdminForm
-from .models import ClassName, ActivityType, Customer, Person, ArchiveClass, FileArchive
+from .models import (
+    ClassName, ActivityType, PersonType, Customer, Person, ArchiveClass, FileArchive,
+)
 from .uploads import stamp_upload_metadata
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'group', 'email', 'phone_number', 'activity_type', 'date_of_constitution')
+    list_display = ('name', 'group', 'email', 'phone_number', 'activity_type', 'person_type', 'date_of_constitution')
     search_fields = ('name', 'group', 'email', 'phone_number')
-    list_filter = ('activity_type',)
+    list_filter = ('activity_type', 'person_type')
 
 
 @admin.register(Person)
@@ -35,10 +37,10 @@ class FileArchiveAdmin(SimpleHistoryAdmin):
     form = FileArchiveAdminForm
     list_display = ('name', 'customer', 'archive_class', 'readable_size', 'uploaded_by', 'uploaded_at')
     list_filter = ('archive_class', 'customer', 'uploaded_by', ('uploaded_at', DateTimeRangeFilter))
-    search_fields = ('name', 'original_filename', 'customer__name')
+    search_fields = ('name', 'original_filename', 'customer__name', 'contact')
 
     def get_fields(self, request, obj=None):
-        base = ["archive_class", "customer", "name", "opening_date", "due_date"]
+        base = ["archive_class", "customer", "name", "contact", "opening_date", "due_date"]
         if obj is None:
             return base + ["file"]
         return base + list(READONLY_ON_EDIT)
@@ -73,6 +75,11 @@ class ClassNameAdmin(admin.ModelAdmin):
 
 @admin.register(ActivityType)
 class ActivityTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name',)
+
+@admin.register(PersonType)
+class PersonTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
     search_fields = ('name',)
 

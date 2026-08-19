@@ -587,17 +587,31 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
     background: rgba(0, 0, 0, .32);
 }
 
+/* flex column + el overflow en .hf-modal-body (y no aquí): así la cabecera se
+   queda fija y solo scrollea el cuerpo. Con un modal de un campo era
+   indistinguible, pero el de Cliente son 13 y el título y la ✕ se iban de la
+   vista. El overflow-y sigue estando en el árbol, así que el comentario de
+   .hf-combo-list (position:fixed) continúa aplicando -- ahí lo que manda es el
+   `transform` de abajo, que convierte a este elemento en containing block. */
 .modal-content {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: 420px;
     max-height: 90vh;
-    overflow-y: auto;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     transform: translateY(10px) scale(.97);
     transition: transform .16s ease;
+}
+
+/* Cuerpos de dos columnas (hoy solo el de Cliente): lo activa size="wide" en
+   quick_create_modal.html. Los modales de un solo campo se quedan en 420px --
+   ensancharlos dejaría un campo de texto perdido en medio de la nada. */
+.modal-content--wide {
+    max-width: 680px;
 }
 
 .modal-overlay.is-open .modal-content {
@@ -614,6 +628,8 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
     display: flex;
     align-items: center;
     justify-content: space-between;
+    /* No se encoge ni se va con el scroll: el cuerpo es el que scrollea. */
+    flex-shrink: 0;
     padding: 18px 22px;
     border-bottom: 1px solid var(--line);
 }
@@ -639,8 +655,48 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
     color: var(--ink);
 }
 
+/* El <form> del modal ES este elemento (ver el partial) y es el contenedor de
+   scroll. min-height:0 no es opcional: un hijo flex no baja de su tamaño de
+   contenido sin él, así que sin esta línea el modal crecería por encima del
+   max-height del padre en vez de scrollear. */
 .hf-modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     padding: 20px 22px 22px;
+}
+
+/* --- Rejilla de dos columnas del cuerpo del modal ------------------------
+   Solo gap de COLUMNA: .form-field ya trae margin-bottom:16px, y sumarle un
+   row-gap duplicaría el espaciado vertical respecto a la pantalla dedicada.
+
+   min-width:0 en los hijos porque una pista de rejilla se ensancha con su
+   contenido (min-width:auto por defecto), y una opción de <select> larga
+   -- Customer.__str__ concatena nombre, grupo y actividad -- desbordaría el
+   modal. .field-with-action ya lo hace con sus hijos flex; esto es el nivel
+   de arriba. */
+.hf-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+
+.hf-modal-grid > .form-field {
+    min-width: 0;
+}
+
+/* Los de texto largo (los deriva CustomerForm.wide_field_names por widget:
+   dirección y notas) cruzan las dos columnas. */
+.form-field--wide {
+    grid-column: 1 / -1;
+}
+
+/* Por debajo de esto, dos columnas dejan los campos demasiado estrechos para
+   un <select> con su botón "+" al lado. */
+@media (max-width: 640px) {
+    .hf-modal-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .hf-modal-errors:not([hidden]) {

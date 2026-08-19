@@ -36,6 +36,10 @@
     form.reset();
     var errorBox = form.querySelector(".hf-modal-errors");
     if (errorBox) { errorBox.hidden = true; errorBox.textContent = ""; }
+    // form.reset() devuelve los VALORES, no los mensajes: sin esto, un modal que
+    // se cierra con errores los vuelve a mostrar al reabrirse (con su
+    // aria-invalid, que un lector de pantalla sí anuncia).
+    clearFieldErrors(form);
     var submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -140,19 +144,63 @@
     if (!openStack.length) document.body.classList.remove("scroll-locked");
   }
 
-  function showErrors(form, errors) {
-    var errorBox = form.querySelector(".hf-modal-errors");
-    if (!errorBox) return;
-    var messages = utils.formErrorMessages(errors);
-    if (!messages.length) messages.push("No se pudo guardar. Revisa los datos e inténtalo de nuevo.");
+  /** Controles del formulario que pueden llevar un error colgado. */
+  function controlsOf(form) {
+    return form.querySelectorAll("input, select, textarea");
+  }
 
+  function clearFieldErrors(form) {
+    if (!window.HFFormValidate) return;
+    controlsOf(form).forEach(window.HFFormValidate.clearFieldError);
+  }
+
+  /**
+   * Pinta los errores que devuelve el servidor.
+   *
+   * Las claves de `errors` son NOMBRES DE CAMPO de Django, que es exactamente el
+   * atributo `name` del control en el DOM -- de ahí que baste un querySelector y
+   * no haga falta conocer el esquema de ids del modal (que varía: los catálogos
+   * usan "<modal_id>-name" y el de Cliente el auto_id="qc-%s" de su form).
+   *
+   * Lo que se puede colgar de un campo se cuelga; el resto (__all__, o una clave
+   * que este modal no muestra) cae al <ul> de resumen. Antes TODO iba al resumen,
+   * y con 13 campos en el modal de Cliente eso significaba leer "Este campo es
+   * obligatorio" sin saber de cuál.
+   */
+  function showErrors(form, errors) {
+    clearFieldErrors(form);
+
+    var errorBox = form.querySelector(".hf-modal-errors");
+    var unmapped = [];
+
+    if (errors && typeof errors === "object" && window.HFFormValidate) {
+      Object.keys(errors).forEach(function (field) {
+        var control = form.querySelector('[name="' + field + '"]');
+        var messages = utils.formErrorMessages({ f: errors[field] });
+        if (!messages.length) return;
+        if (control) {
+          window.HFFormValidate.paintFieldError(control, messages.join(" "));
+        } else {
+          unmapped = unmapped.concat(messages);
+        }
+      });
+    } else {
+      unmapped = utils.formErrorMessages(errors);
+    }
+
+    if (!errorBox) return;
     errorBox.textContent = "";
-    messages.forEach(function (m) {
+    // El genérico solo si no quedó NADA visible: con los errores ya pintados
+    // campo a campo, repetir "revisa los datos" arriba es ruido.
+    if (!unmapped.length && !Object.keys(errors || {}).length) {
+      unmapped = ["No se pudo guardar. Revisa los datos e inténtalo de nuevo."];
+    }
+    unmapped.forEach(function (m) {
       var li = document.createElement("li");
       li.textContent = m; // texto plano vía textContent -- nunca innerHTML con datos del servidor
       errorBox.appendChild(li);
     });
-    errorBox.hidden = false;
+    errorBox.hidden = !unmapped.length;
   }
 
   function addAndSelectOption(select, id, label) {

@@ -22,6 +22,12 @@ urlpatterns = [
     path("tipos-actividad/<int:pk>/editar/", views.ActivityTypeUpdateView.as_view(), name="activitytype-update"),
     path("tipos-actividad/<int:pk>/eliminar/", views.ActivityTypeDeleteView.as_view(), name="activitytype-delete"),
 
+    # --- Tipos de persona (PersonType) ---
+    # Sin ruta de alta, por lo mismo que los dos catálogos de arriba.
+    path("tipos-persona/", views.PersonTypeListView.as_view(), name="persontype-list"),
+    path("tipos-persona/<int:pk>/editar/", views.PersonTypeUpdateView.as_view(), name="persontype-update"),
+    path("tipos-persona/<int:pk>/eliminar/", views.PersonTypeDeleteView.as_view(), name="persontype-delete"),
+
     # --- Clientes (Customer) ---
     path("clientes/", views.CustomerListView.as_view(), name="customer-list"),
     path("clientes/nuevo/", views.CustomerCreateView.as_view(), name="customer-create"),
@@ -43,9 +49,11 @@ urlpatterns = [
     path("archivos/<uuid:pk>/preview/", views.file_archive_preview_view, name="archive-preview"),
 
     # --- Alta rápida (modales de /archivos/subir/ y del alta de cliente) ---
-    # Para ClassName y ActivityType esta es la ÚNICA vía de alta que existe.
+    # Para ClassName, ActivityType y PersonType esta es la ÚNICA vía de alta que
+    # existe.
     path("api/customers/quick-create/", views.customer_quick_create_view, name="customer-quick-create"),
     path("api/archive-classes/quick-create/", views.archive_class_quick_create_view, name="archive-class-quick-create"),
     path("api/class-names/quick-create/", views.classname_quick_create_view, name="classname-quick-create"),
     path("api/activity-types/quick-create/", views.activity_type_quick_create_view, name="activitytype-quick-create"),
+    path("api/person-types/quick-create/", views.person_type_quick_create_view, name="persontype-quick-create"),
 ]

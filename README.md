@@ -74,7 +74,7 @@ Se leen del `.env` de la raíz vía `django-environ` (ver `.env.example`).
 core/            Configuración del proyecto (settings, urls, wsgi)
   views.py       Dashboard y /healthz/ (usado por el healthcheck de Dokku)
 files/           App de dominio
-  models.py      ClassName, ActivityType, Customer, Person, ArchiveClass, FileArchive
+  models.py      ClassName, ActivityType, PersonType, Customer, Person, ArchiveClass, FileArchive
   views.py       Listado master-detail, subida, preview, descarga, edición, alta rápida
   uploads.py     Reglas compartidas de subida (tope de tamaño, sellado de metadatos)
   forms.py       Formulario del Admin
@@ -99,14 +99,24 @@ intercepta con `XMLHttpRequest` para mostrar **barra de progreso real**;
 
 - Arrastrar y soltar, pegado con `Ctrl+V` y selección clásica desembocan en el
   mismo `<input type="file">` real, poblado mediante la API `DataTransfer`.
+- Además del nombre visible, la subida pide un **Contacto** obligatorio (máx. 50
+  caracteres): un cliente tiene varias personas y sin él no queda rastro de a
+  cuál corresponde el trámite.
 - Junto a los desplegables **Cliente** y **Clase de archivo** hay botones
   `+ Nuevo` que abren un modal. El modal envía por `fetch` a su endpoint,
   inserta la opción creada en el `<select>` y la deja seleccionada, **sin
   recargar la página ni perder lo ya escrito** en el formulario principal.
-- El modal de **Nuevo cliente** lleva a su vez botones `+` junto a *Clase de
-  cliente* y *Tipo de actividad*: **modales anidados**, hasta dos niveles. Se
-  apilan lógicamente (`data-stack-depth`), no en el DOM, y `Escape` cierra solo
-  el de arriba para no descartar el formulario padre a medio llenar.
+- El modal de **Nuevo cliente** captura **los mismos campos que
+  `/clientes/nuevo/`**, en dos columnas: es el mismo `CustomerForm`, así que no
+  hay forma de que las dos pantallas divergan. Lleva a su vez botones `+` junto a
+  *Clase de cliente*, *Tipo de actividad* y *Tipo de persona*: **modales
+  anidados**, hasta dos niveles. Se apilan lógicamente (`data-stack-depth`), no
+  en el DOM, y `Escape` cierra solo el de arriba para no descartar el formulario
+  padre a medio llenar.
+- Los errores que devuelve el servidor se pintan **sobre el campo que falló**,
+  con el mismo estilo que los de cliente (`hf_form_validate.js` expone su
+  pintor); el `<ul>` de resumen del modal queda para lo que no se puede colgar de
+  un campo concreto.
 - Los desplegables largos se convierten en un **combobox con búsqueda**
   (`hf_searchable_select.js`, filtrado sin distinguir acentos ni mayúsculas). El
   `<select>` nativo permanece como fuente de verdad, así que la página sigue
@@ -194,25 +204,29 @@ vuelve a mostrar en el formulario.
 | GET | `/tipos-actividad/` | `files:activitytype-list` | Mantenimiento del catálogo (sin alta) |
 | GET/POST | `/tipos-actividad/<pk>/editar/` | `files:activitytype-update` | Edición |
 | POST | `/tipos-actividad/<pk>/eliminar/` | `files:activitytype-delete` | Borrado (avisa del CASCADE) |
+| GET | `/tipos-persona/` | `files:persontype-list` | Mantenimiento del catálogo (sin alta) |
+| GET/POST | `/tipos-persona/<pk>/editar/` | `files:persontype-update` | Edición |
+| POST | `/tipos-persona/<pk>/eliminar/` | `files:persontype-delete` | Borrado (los clientes quedan sin tipo; **no** hay CASCADE) |
 | POST | `/api/customers/quick-create/` | `files:customer-quick-create` | Alta rápida de cliente → `{id, label}` |
 | POST | `/api/archive-classes/quick-create/` | `files:archive-class-quick-create` | Alta rápida de clase de archivo → `{id, label}` |
 | POST | `/api/class-names/quick-create/` | `files:classname-quick-create` | Alta rápida de clase de cliente → `{id, label}` |
 | POST | `/api/activity-types/quick-create/` | `files:activitytype-quick-create` | Alta rápida de tipo de actividad → `{id, label}` |
+| POST | `/api/person-types/quick-create/` | `files:persontype-quick-create` | Alta rápida de tipo de persona → `{id, label}` |
 
 Clientes y personas exponen el CRUD habitual bajo `/clientes/` y `/personas/`.
 
-Los dos catálogos de cliente (`ClassName`, `ActivityType`) **no tienen pantalla
-de alta**, a propósito: solo se necesitan a media tarea, mientras se rellena un
-cliente o una subida, y una pantalla aparte obligaba a abandonar el formulario a
-medio llenar. Su alta vive únicamente en el modal de alta rápida; lo que queda
-bajo `/clases-cliente/` y `/tipos-actividad/` es la superficie de
-mantenimiento, a la que se llega desde el pie de ese modal (no desde el
-sidebar, del que se retiraron). `ArchiveClass` va más lejos y no tiene ninguna
-pantalla propia.
+Los tres catálogos de cliente (`ClassName`, `ActivityType`, `PersonType`) **no
+tienen pantalla de alta**, a propósito: solo se necesitan a media tarea,
+mientras se rellena un cliente o una subida, y una pantalla aparte obligaba a
+abandonar el formulario a medio llenar. Su alta vive únicamente en el modal de
+alta rápida; lo que queda bajo `/clases-cliente/`, `/tipos-actividad/` y
+`/tipos-persona/` es la superficie de mantenimiento, a la que se llega desde el
+pie de ese modal (no desde el sidebar, del que se retiraron). `ArchiveClass` va
+más lejos y no tiene ninguna pantalla propia.
 
-Los cuatro endpoints `quick-create` responden `201` con `{"id": …, "label": …}`
+Los cinco endpoints `quick-create` responden `201` con `{"id": …, "label": …}`
 o `400` con `{"errors": {campo: [...]}}`, y exigen CSRF (`X-CSRFToken`) y el
-permiso de alta del modelo correspondiente. Los tres de catálogo aceptan
+permiso de alta del modelo correspondiente. Los cuatro de catálogo aceptan
 `name` y `description`, y rechazan un `name` que ya exista sin distinguir
 mayúsculas (`name` no lleva `unique=True` en la base: ver la deuda técnica).
 
@@ -221,14 +235,14 @@ mayúsculas (`name` no lleva `unique=True` en la base: ver la deuda técnica).
 ## Permisos
 
 El grupo **"Usuarios estándar"** se crea y mantiene solo (ver
-`authentication/signals.py`): otorga `add` y `change` sobre los seis modelos de
-`MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass, ClassName y
-ActivityType), **nunca `delete`** ni `view`. Todo usuario nuevo que no sea
-superusuario entra a ese grupo automáticamente.
+`authentication/signals.py`): otorga `add` y `change` sobre los siete modelos de
+`MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass, ClassName,
+ActivityType y PersonType), **nunca `delete`** ni `view`. Todo usuario nuevo que
+no sea superusuario entra a ese grupo automáticamente.
 
-Los dos catálogos necesitan `add` justamente porque el modal es su única vía de
-alta: sin ese permiso, un usuario estándar no podría crear el catálogo que su
-propio formulario le exige.
+Los tres catálogos de cliente necesitan `add` justamente porque el modal es su
+única vía de alta: sin ese permiso, un usuario estándar no podría crear el
+catálogo que su propio formulario le ofrece.
 
 Ver y descargar archivos solo requiere estar autenticado: no hay noción de
 "clientes propios" por usuario.

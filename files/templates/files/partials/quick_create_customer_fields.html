@@ -1,59 +1,33 @@
-{% comment %}Cuerpo del modal "Nuevo cliente" (QuickCustomerForm).
+{% comment %}Cuerpo del modal "Nuevo cliente" de /archivos/subir/.
 
-Los cuatro campos son obligatorios en el modelo, no por comodidad del modal
-(ver files/models.py y QuickCustomerForm).
+Renderiza el CustomerForm COMPLETO -- el mismo formulario y los mismos 13 campos
+que /clientes/nuevo/. Antes eran cuatro <select>/<input> escritos a mano
+alimentados por querysets sueltos, y fue justo eso lo que dejó al modal atrás
+cuando el modelo creció: `person_type` y `notes` solo aparecieron en la pantalla
+dedicada. Ahora:
 
-Los ids NO se derivan de modal_id aquí, se dejan fijos (qc-classname,
-qc-activity-type): son el valor de data-target-select de los modales de segundo
-nivel, y el <label for> los referencia. Este cuerpo se usa en una sola página.
+  - se recorre `customer_form`, así que un campo nuevo en CustomerForm.Meta.fields
+    aparece aquí solo, sin tocar esta plantilla;
+  - cada campo lo pinta el partial COMPARTIDO con la pantalla dedicada
+    (customer_form_field.html), incluidos los botones "+" de los tres catálogos.
 
-Los dos <select> están escritos a mano (no {{ form.x }}) porque este modal no
-recibe un form de Django: se alimenta de los querysets classnames /
-activity_types que pone _upload_page_context en files/views.py.
+`modal_prefix="qc-"`: los "+" de este cuerpo abren los modales de SEGUNDO nivel
+(qc-classname-modal, qc-activitytype-modal, qc-persontype-modal), declarados como
+HERMANOS en upload.html. En la pantalla dedicada el mismo partial se incluye sin
+prefijo y abre classname-modal, etc.
 
-Aquí es donde vive el arreglo del callejón sin salida: al no haber ya pantalla
-de alta de catálogos, un usuario con los catálogos vacíos se quedaba con dos
-<select> obligatorios y ninguna forma de rellenarlos. Los "+" abren los modales
-de segundo nivel, que están declarados como HERMANOS en upload.html.{% endcomment %}
-<div class="form-field">
-  <label for="qc-name">Nombre<span class="form-required" aria-hidden="true">*</span></label>
-  <input type="text" id="qc-name" name="name" maxlength="100" required>
+Los ids son los del form (auto_id="qc-%s" en _upload_page_context): qc-name,
+qc-classname, qc-activity_type... Ese prefijo es lo que evita chocar con el
+id_name del formulario de subida, que vive en la misma página.
+
+Rejilla de dos columnas: con 13 campos, una sola columna obligaba a un scroll
+largo hasta el botón "Crear cliente". Los campos de texto largo la cruzan
+entera, y `wide_field_names()` los deriva del widget en vez de listarlos a
+mano.{% endcomment %}
+{% with form_wide_fields=customer_form.wide_field_names %}
+<div class="hf-modal-grid">
+  {% for field in customer_form %}
+    {% include "files/partials/customer_form_field.html" with field=field modal_prefix="qc-" %}
+  {% endfor %}
 </div>
-<div class="form-field">
-  <label for="qc-classname">Clase de cliente<span class="form-required" aria-hidden="true">*</span></label>
-  {% if perms.files.add_classname %}
-    <div class="field-with-action">
-      <select id="qc-classname" name="classname" required>
-        <option value="">---------</option>
-        {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
-      </select>
-      <button type="button" class="btn btn-sm" data-modal-open="qc-classname-modal">+ Nueva</button>
-    </div>
-  {% else %}
-    <select id="qc-classname" name="classname" required>
-      <option value="">---------</option>
-      {% for c in classnames %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
-    </select>
-  {% endif %}
-</div>
-<div class="form-field">
-  <label for="qc-activity-type">Tipo de actividad<span class="form-required" aria-hidden="true">*</span></label>
-  {% if perms.files.add_activitytype %}
-    <div class="field-with-action">
-      <select id="qc-activity-type" name="activity_type" required>
-        <option value="">---------</option>
-        {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
-      </select>
-      <button type="button" class="btn btn-sm" data-modal-open="qc-activitytype-modal">+ Nuevo</button>
-    </div>
-  {% else %}
-    <select id="qc-activity-type" name="activity_type" required>
-      <option value="">---------</option>
-      {% for a in activity_types %}<option value="{{ a.pk }}">{{ a.name }}</option>{% endfor %}
-    </select>
-  {% endif %}
-</div>
-<div class="form-field">
-  <label for="qc-date-of-constitution">Fecha de constitución<span class="form-required" aria-hidden="true">*</span></label>
-  <input type="date" id="qc-date-of-constitution" name="date_of_constitution" required>
-</div>
+{% endwith %}

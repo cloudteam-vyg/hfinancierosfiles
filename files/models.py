@@ -10,7 +10,7 @@ def file_archive_upload_to(instance, filename):
     # clientes/clases con el mismo nombre.
     return f"file_archives/{instance.id}/{filename}"
 
-# Los tres catálogos (ClassName, ActivityType, ArchiveClass) llevan
+# Los cuatro catálogos (ClassName, ActivityType, PersonType, ArchiveClass) llevan
 # `ordering` a nivel de Meta y no en cada llamada: el orden de las opciones
 # de un <select> lo decidían tres sitios distintos con tres políticas
 # distintas (_upload_page_context con .order_by("name"), FileArchiveEditForm
@@ -44,6 +44,24 @@ class ActivityType(models.Model):
         ordering = ("name",)
 
 
+class PersonType(models.Model):
+    """Naturaleza jurídica del cliente (Física, Moral...).
+
+    Mismo patrón que los otros catálogos, pero su FK en Customer es opcional
+    y SET_NULL: ver el comentario de Customer.person_type.
+    """
+
+    name = models.CharField(verbose_name="Nombre", max_length=100)
+    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+    class Meta:
+        verbose_name = "Tipo de persona"
+        verbose_name_plural = "Tipos de persona"
+        ordering = ("name",)
+
+
 class Customer(models.Model):
     classname = models.ForeignKey(ClassName, on_delete=models.CASCADE, related_name='customers', verbose_name="Clase de cliente")
     # Obligatorio a nivel de MODELO, no solo de formulario: antes era
@@ -60,9 +78,26 @@ class Customer(models.Model):
     address = models.TextField(verbose_name="Dirección", blank=True, null=True)
     country = models.CharField(verbose_name="País", max_length=100, blank=True, null=True)
     activity_type = models.ForeignKey(ActivityType, on_delete=models.CASCADE, related_name='customers', verbose_name="Tipo de actividad")
-    date_of_constitution = models.DateField(verbose_name="Fecha de constitución")
+    # ASIMETRÍA DELIBERADA con classname/activity_type, que son CASCADE: este FK
+    # es opcional, así que borrar un tipo de persona no puede significar borrar
+    # los clientes que lo usaban (y con ellos, en cascada, sus archivos). Un
+    # cliente sin tipo de persona es un estado válido; un cliente borrado por
+    # limpiar un catálogo, no.
+    person_type = models.ForeignKey(
+        PersonType, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='customers', verbose_name="Tipo de persona",
+    )
+    # La etiqueta cubre los dos casos porque el campo también los cubre: para
+    # una persona moral es la fecha de constitución y para una física la de
+    # nacimiento. Se cambia AQUÍ y solo aquí -- de este verbose_name lo derivan
+    # el <label> del formulario del frontend y la cabecera del changelist del
+    # Admin.
+    date_of_constitution = models.DateField(verbose_name="Fecha de constitución/Nacimiento")
     web_site = models.URLField(verbose_name="Sitio web", blank=True, null=True)
     word_clave = models.CharField(verbose_name="Palabras clave", max_length=100, blank=True, null=True)
+    # CharField y no TextField: el tope de 300 tiene que valer también en la
+    # base de datos, y TextField.max_length solo lo aplican los formularios.
+    notes = models.CharField(verbose_name="Notas", max_length=300, blank=True, null=True)
 
     def __str__(self):
         # Esta cadena ES la etiqueta del <option> en los <select> de cliente
@@ -122,6 +157,12 @@ class FileArchive(models.Model):
     archive_class = models.ForeignKey(ArchiveClass, on_delete=models.CASCADE, related_name='file_archives', verbose_name="Clase de archivo")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='file_archives', verbose_name="Cliente")
     name = models.CharField(verbose_name="Nombre del archivo", max_length=150)
+    # Obligatorio (blank=False, null=False): un cliente tiene varias personas y
+    # sin esto no queda rastro de a cuál corresponde el trámite. Texto libre y no
+    # un FK a Person a propósito -- el contacto puede ser alguien que no está
+    # dado de alta como persona del cliente. Las filas anteriores a la migración
+    # 0005 quedaron con "" y hay que rellenarlas al editarlas.
+    contact = models.CharField(verbose_name="Contacto", max_length=50)
 
     # Poblados por el flujo de subida (ver files/forms.py, files/frontend_forms.py
     # y files/admin.py). `file` es un FileField real: Django lo asigna solo

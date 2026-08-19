@@ -18,21 +18,22 @@ MANAGED_MODELS = (
     ("files", "archiveclass"),
     ("files", "classname"),
     ("files", "activitytype"),
+    ("files", "persontype"),
 )
 MANAGED_PERMISSION_PREFIXES = ("add", "change")  # explícitamente SIN "delete" ni "view"
 
 
 def ensure_standard_group():
     """Crea (si falta) el grupo STANDARD_GROUP_NAME y fija su conjunto de
-    permisos de forma idempotente (add/change sobre los seis modelos de
-    MANAGED_MODELS -- Customer, Person, FileArchive, ArchiveClass, ClassName y
-    ActivityType --, nunca delete). Llamarlo N veces da siempre el mismo
-    resultado, ya que usa .set() en vez de .add().
+    permisos de forma idempotente (add/change sobre los siete modelos de
+    MANAGED_MODELS -- Customer, Person, FileArchive, ArchiveClass, ClassName,
+    ActivityType y PersonType --, nunca delete). Llamarlo N veces da siempre el
+    mismo resultado, ya que usa .set() en vez de .add().
 
-    Los dos catálogos (ClassName, ActivityType) necesitan `add` porque su única
-    vía de alta es el modal de alta rápida del formulario de Cliente: sin el
-    permiso, un usuario estándar no podría crear el catálogo que su propio
-    formulario le exige.
+    Los tres catálogos de cliente (ClassName, ActivityType, PersonType)
+    necesitan `add` porque su única vía de alta es el modal de alta rápida del
+    formulario de Cliente: sin el permiso, un usuario estándar no podría crear
+    el catálogo que su propio formulario le ofrece.
 
     Devuelve el Group si tuvo éxito, o None si algún ContentType/Permission
     todavía no existe (p. ej. las migraciones de `files` no han corrido) --

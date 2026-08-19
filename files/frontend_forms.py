@@ -1,6 +1,8 @@
 from django import forms
 
-from .models import ActivityType, ArchiveClass, ClassName, Customer, FileArchive, Person
+from .models import (
+    ActivityType, ArchiveClass, ClassName, Customer, FileArchive, Person, PersonType,
+)
 from .uploads import validate_upload_size
 
 DATE_INPUT = forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
@@ -21,10 +23,69 @@ def _customer_choices():
     return Customer.objects.select_related("activity_type").order_by("name")
 
 
+class CustomerForm(forms.ModelForm):
+    """Alta y edición de Cliente. ÚNICO formulario de Cliente de la app.
+
+    Lo usan las dos superficies de alta que existen:
+
+      - /clientes/nuevo/ y /clientes/<pk>/editar/ (CustomerCreateView/UpdateView)
+      - el modal "+ Nuevo cliente" de /archivos/subir/ (customer_quick_create_view)
+
+    Que sea uno solo es el arreglo de un bug de divergencia, no una preferencia
+    de estilo: el modal tenía su propio QuickCustomerForm de 4 campos, así que
+    `person_type` y `notes` llegaron al modelo y solo aparecieron en la pantalla
+    dedicada. Quien daba de alta un cliente desde la subida capturaba menos
+    datos y no tenía forma de saberlo.
+
+    Existe también para poder declarar widgets, que es lo único que
+    `fields = (...)` en la vista no permite: date_of_constitution es un DateField
+    desde siempre, pero con el DateInput por defecto de Django se renderizaba
+    como <input type="text"> y había que teclear la fecha en un formato que la
+    pantalla no decía en ninguna parte.
+
+    La lista de campos vive AQUÍ y en ningún otro sitio: antes estaba en la
+    constante CUSTOMER_FIELDS de files/views.py, duplicada para Create y
+    Update.
+    """
+
+    class Meta:
+        model = Customer
+        fields = (
+            "classname", "name", "group", "email", "phone_number", "address",
+            "country", "activity_type", "person_type", "date_of_constitution",
+            "web_site", "word_clave", "notes",
+        )
+        widgets = {
+            # format="%Y-%m-%d" no es decorativo: sin él, al editar un cliente
+            # Django serializa la fecha con el formato de es-mx ("19 de agosto
+            # de 2026"), un <input type="date"> no lo entiende y el campo sale
+            # VACÍO -- guardar entonces borraría el dato.
+            "date_of_constitution": DATE_INPUT,
+            # El maxlength=300 lo pone Django solo, derivado del max_length del
+            # modelo (CharField.widget_attrs lo emite también para Textarea):
+            # escribirlo aquí a mano sería duplicar el tope del servidor.
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def wide_field_names(self):
+        """Campos que ocupan las dos columnas de la rejilla del modal.
+
+        DERIVADO del widget (todo Textarea) y no de una lista escrita a mano:
+        un TextField nuevo en el modelo se coloca a ancho completo por sí solo,
+        sin que nadie tenga que acordarse de apuntarlo aquí. Lo consume
+        quick_create_customer_fields.html; en la pantalla dedicada, que es de
+        una sola columna, no aplica.
+        """
+        return [
+            name for name, field in self.fields.items()
+            if isinstance(field.widget, forms.Textarea)
+        ]
+
+
 class FileArchiveUploadForm(forms.ModelForm):
     class Meta:
         model = FileArchive
-        fields = ("archive_class", "customer", "name", "opening_date", "due_date", "file")
+        fields = ("archive_class", "customer", "name", "contact", "opening_date", "due_date", "file")
         widgets = {
             "file": forms.ClearableFileInput(attrs={"hidden": True}),
             "opening_date": DATE_INPUT,
@@ -58,7 +119,7 @@ class FileArchiveEditForm(forms.ModelForm):
 
     class Meta:
         model = FileArchive
-        fields = ("archive_class", "customer", "name", "opening_date", "due_date")
+        fields = ("archive_class", "customer", "name", "contact", "opening_date", "due_date")
         widgets = {"opening_date": DATE_INPUT, "due_date": DATE_INPUT}
 
     def __init__(self, *args, **kwargs):
@@ -84,29 +145,20 @@ class PersonForm(forms.ModelForm):
         self.fields["customer"].queryset = _customer_choices()
 
 
-class QuickCustomerForm(forms.ModelForm):
-    """Alta mínima de Customer desde el modal "+ Nuevo" de /archivos/subir/.
-
-    Los cuatro campos son obligatorios en el modelo (ver files/models.py), no
-    por comodidad del modal: el ModelForm los exige igual que cualquier otra
-    alta de Customer. En particular `name` ya no necesita forzarse a
-    required=True aquí -- lo deriva del modelo desde la migración 0003, y
-    volver a ponerlo a mano solo duplicaría el invariante en un segundo sitio
-    donde puede quedarse desactualizado.
-    """
-
-    class Meta:
-        model = Customer
-        fields = ("name", "classname", "activity_type", "date_of_constitution")
-        widgets = {"date_of_constitution": DATE_INPUT}
+# NO hay QuickCustomerForm: el modal "+ Nuevo cliente" de /archivos/subir/ usa
+# el mismo CustomerForm de arriba. Existió como "alta mínima" de 4 campos y fue
+# precisamente esa duplicación la que dejó el modal atrás cuando el modelo creció
+# (`person_type` y `notes` solo llegaron a la pantalla dedicada). Si vuelve a
+# hacer falta un subconjunto de campos, que sea un `fields` acotado sobre este
+# mismo form y no un segundo ModelForm que pueda derivar otra vez.
 
 
-# Catálogos que exige el alta de Cliente (y de Archivo). Se pueden crear desde
+# Catálogos usados por el alta de Cliente (y de Archivo). Se pueden crear desde
 # un modal en el propio formulario para no tener que abandonarlo a medio
 # llenar; de hecho es la ÚNICA forma de crearlos en el frontend (no hay página
 # de alta aislada, ver files/urls.py).
 class _QuickCatalogForm(forms.ModelForm):
-    """Base de los tres catálogos: mismos campos y misma regla de duplicados.
+    """Base de los cuatro catálogos: mismos campos y misma regla de duplicados.
 
     `name` no lleva unique=True en la base de datos (ver la deuda anotada en
     ARCHITECTURE.md). Con el alta a un clic desde tres sitios distintos, y
@@ -141,4 +193,10 @@ class QuickClassNameForm(_QuickCatalogForm):
 class QuickActivityTypeForm(_QuickCatalogForm):
     class Meta:
         model = ActivityType
+        fields = ("name", "description")
+
+
+class QuickPersonTypeForm(_QuickCatalogForm):
+    class Meta:
+        model = PersonType
         fields = ("name", "description")

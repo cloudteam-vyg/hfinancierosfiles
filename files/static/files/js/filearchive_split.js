@@ -148,8 +148,12 @@
 
     function populateHeader(row) {
       nameEl.textContent = row.dataset.name || "";
+      // filter(Boolean) no es decorativo aquí: contact solo es obligatorio
+      // desde la migración 0005, así que las filas anteriores lo traen vacío y
+      // no deben dejar un " · " suelto.
       metaEl.textContent = [
-        row.dataset.customer, row.dataset.archiveClass, row.dataset.sizeDisplay,
+        row.dataset.customer, row.dataset.contact, row.dataset.archiveClass,
+        row.dataset.sizeDisplay,
       ].filter(Boolean).join(" · ");
 
       downloadBtn.href = row.dataset.downloadUrl;
@@ -271,7 +275,8 @@
       var metaLine = document.createElement("p");
       metaLine.className = "preview-fallback-meta";
       metaLine.textContent = [
-        row.dataset.customer, row.dataset.sizeDisplay, row.dataset.updated,
+        row.dataset.customer, row.dataset.contact, row.dataset.sizeDisplay,
+        row.dataset.updated,
       ].filter(Boolean).join(" · ");
       if (metaLine.textContent) card.appendChild(metaLine);
 

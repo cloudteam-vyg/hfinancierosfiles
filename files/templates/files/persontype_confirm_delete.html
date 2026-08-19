@@ -1,0 +1,27 @@
+{% extends "app_base.html" %}
+{% block title %}Eliminar tipo de persona{% endblock %}
+{% block app_content %}
+<div class="card" style="max-width: 480px;">
+  <h1 style="margin: 0 0 10px; font-size: 20px; font-weight: 600;">Eliminar tipo de persona</h1>
+  <p style="color: var(--muted); font-size: 13.5px; line-height: 1.5;">
+    ¿Seguro que deseas eliminar <strong style="color: var(--ink);">{{ object }}</strong>? Esta acción no se puede deshacer.
+  </p>
+  {% if customer_count %}
+    {% comment %}Aviso distinto al de los otros dos catálogos a propósito:
+    Customer.person_type es SET_NULL, no CASCADE, así que aquí NO se borra
+    nada más. Avisar de un borrado en cascada que no ocurre asusta sin
+    motivo.{% endcomment %}
+    <ul class="hf-form-errors" style="margin: 0 0 14px; padding-left: 18px;">
+      <li>
+        Hay {{ customer_count }} cliente{{ customer_count|pluralize }} usando este tipo de persona.
+        No se {{ customer_count|pluralize:"eliminará,eliminarán" }}: {{ customer_count|pluralize:"quedará,quedarán" }} sin tipo de persona.
+      </li>
+    </ul>
+  {% endif %}
+  <form method="post" class="form-actions">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'files:persontype-list' %}" class="btn">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

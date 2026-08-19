@@ -19,10 +19,11 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .frontend_forms import (
-    FileArchiveEditForm, FileArchiveUploadForm, PersonForm, QuickActivityTypeForm,
-    QuickArchiveClassForm, QuickClassNameForm, QuickCustomerForm,
+    CustomerForm, FileArchiveEditForm, FileArchiveUploadForm, PersonForm,
+    QuickActivityTypeForm, QuickArchiveClassForm, QuickClassNameForm,
+    QuickPersonTypeForm,
 )
-from .models import ActivityType, ClassName, Customer, FileArchive, Person
+from .models import ActivityType, ClassName, Customer, FileArchive, Person, PersonType
 from .uploads import stamp_upload_metadata
 
 
@@ -130,14 +131,46 @@ class ActivityTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Delete
 
 
 # =============================================================================
-# Cliente (Customer)
+# Tipo de persona (PersonType) -- catálogo OPCIONAL del Cliente
 # =============================================================================
 
-CUSTOMER_FIELDS = (
-    "classname", "name", "group", "email", "phone_number", "address",
-    "country", "activity_type", "date_of_constitution", "web_site", "word_clave",
-)
+class PersonTypeListView(LoginRequiredMixin, ListView):
+    model = PersonType
+    template_name = "files/persontype_list.html"
+    context_object_name = "person_types"
+    paginate_by = 25
+    ordering = ("name",)
 
+
+# Sin CreateView, igual que ClassName y ActivityType: ver el comentario de
+# ClassNameUpdateView.
+class PersonTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = PersonType
+    fields = ("name", "description")
+    template_name = "files/persontype_form.html"
+    permission_required = "files.change_persontype"
+    success_url = reverse_lazy("files:persontype-list")
+
+
+class PersonTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = PersonType
+    template_name = "files/persontype_confirm_delete.html"
+    permission_required = "files.delete_persontype"
+    success_url = reverse_lazy("files:persontype-list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # A diferencia de classname/activity_type, Customer.person_type es
+        # SET_NULL: estos clientes NO se borran, se quedan sin tipo de persona.
+        # El template dice exactamente eso -- avisar de un borrado en cascada
+        # que no ocurre asusta sin motivo.
+        context["customer_count"] = self.object.customers.count()
+        return context
+
+
+# =============================================================================
+# Cliente (Customer)
+# =============================================================================
 
 class CustomerListView(LoginRequiredMixin, ListView):
     model = Customer
@@ -150,9 +183,12 @@ class CustomerListView(LoginRequiredMixin, ListView):
     # Cualquier usuario autenticado puede listar.
 
 
+# Las dos usan form_class (CustomerForm) y no `fields`: es la única forma de
+# fijar el widget type="date" de date_of_constitution y el Textarea de notes.
+# Ver files/frontend_forms.py::CustomerForm.
 class CustomerCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Customer
-    fields = CUSTOMER_FIELDS
+    form_class = CustomerForm
     template_name = "files/customer_form.html"
     permission_required = "files.add_customer"
     success_url = reverse_lazy("files:customer-list")
@@ -160,7 +196,7 @@ class CustomerCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
 class CustomerUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Customer
-    fields = CUSTOMER_FIELDS
+    form_class = CustomerForm
     template_name = "files/customer_form.html"
     permission_required = "files.change_customer"
     success_url = reverse_lazy("files:customer-list")
@@ -470,10 +506,17 @@ def _upload_page_context(form):
     return {
         "form": form,
         "max_upload_size_mb": settings.MAX_UPLOAD_SIZE_MB,
-        # Para el <select> de classname/activity_type del modal "+ Nuevo
-        # cliente" -- son catálogos pequeños, se listan enteros sin paginar.
-        "classnames": ClassName.objects.order_by("name"),
-        "activity_types": ActivityType.objects.order_by("name"),
+        # El modal "+ Nuevo cliente" renderiza este form COMPLETO -- el mismo que
+        # /clientes/nuevo/. Antes recibía dos querysets sueltos (classnames,
+        # activity_types) para unos <select> escritos a mano, y por ahí se quedó
+        # en 4 campos mientras el modelo crecía.
+        #
+        # auto_id="qc-%s" no es cosmético: FileArchiveUploadForm también tiene un
+        # campo `name`, así que con el auto_id por defecto habría dos id_name en
+        # la misma página y uno de los dos <label for> apuntaría al control
+        # equivocado. Solo cambia los IDS: los names van sin prefijo, así que el
+        # POST llega a customer_quick_create_view tal cual.
+        "customer_form": CustomerForm(auto_id="qc-%s"),
     }
 
 
@@ -523,7 +566,10 @@ def file_archive_upload_view(request):
 @require_POST
 @permission_required("files.add_customer", raise_exception=True)
 def customer_quick_create_view(request):
-    form = QuickCustomerForm(request.POST)
+    # El MISMO form que /clientes/nuevo/: mismos campos, misma validación. Sin
+    # auto_id aquí -- solo afecta al renderizado, y esta rama nunca renderiza el
+    # form (los errores viajan como JSON y los pinta el JS del modal).
+    form = CustomerForm(request.POST)
     if form.is_valid():
         obj = form.save()
         return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
@@ -557,6 +603,17 @@ def classname_quick_create_view(request):
 @permission_required("files.add_activitytype", raise_exception=True)
 def activity_type_quick_create_view(request):
     form = QuickActivityTypeForm(request.POST)
+    if form.is_valid():
+        obj = form.save()
+        return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
+    return JsonResponse({"errors": form.errors}, status=400)
+
+
+@login_required
+@require_POST
+@permission_required("files.add_persontype", raise_exception=True)
+def person_type_quick_create_view(request):
+    form = QuickPersonTypeForm(request.POST)
     if form.is_valid():
         obj = form.save()
         return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)

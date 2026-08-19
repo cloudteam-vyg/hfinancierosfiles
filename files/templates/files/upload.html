@@ -82,6 +82,15 @@
         {{ form.name.errors }}
       </div>
       <div class="form-field">
+        {% comment %}Obligatorio y con maxlength=50: los dos los pone el propio
+        modelo (FileArchive.contact), el asterisco se deriva de .required y el
+        maxlength lo emite Django desde el max_length. hf_form_validate.js ya
+        traduce tooLong, así que el aviso de longitud sale gratis.{% endcomment %}
+        <label for="{{ form.contact.id_for_label }}">{{ form.contact.label }}{% if form.fields.contact.required %}<span class="form-required" aria-hidden="true">*</span>{% endif %}</label>
+        {{ form.contact }}
+        {{ form.contact.errors }}
+      </div>
+      <div class="form-field">
         <label for="{{ form.opening_date.id_for_label }}">Fecha de apertura</label>
         {{ form.opening_date }}
       </div>
@@ -98,17 +107,21 @@
   </div>
 </form>
 
-{% comment %}Los CUATRO modales de esta página son hermanos al nivel superior de
-app_content, incluidos los dos de segundo nivel: se abren DESDE el modal de
+{% comment %}Los CINCO modales de esta página son hermanos al nivel superior de
+app_content, incluidos los tres de segundo nivel: se abren DESDE el modal de
 cliente, pero no viven dentro de él (ver la nota del partial).{% endcomment %}
 {% url 'files:classname-quick-create' as classname_qc_url %}
 {% url 'files:classname-list' as classname_list_url %}
 {% url 'files:activitytype-quick-create' as activitytype_qc_url %}
 {% url 'files:activitytype-list' as activitytype_list_url %}
+{% url 'files:persontype-quick-create' as persontype_qc_url %}
+{% url 'files:persontype-list' as persontype_list_url %}
 
+{% comment %}size="wide": su cuerpo es el CustomerForm completo (13 campos) en
+dos columnas, el mismo formulario que /clientes/nuevo/.{% endcomment %}
 {% url 'files:customer-quick-create' as customer_qc_url %}
 {% if perms.files.add_customer %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="customer-modal" title="Nuevo cliente" submit_label="Crear cliente" quick_create_url=customer_qc_url target_select="id_customer" body_template="files/partials/quick_create_customer_fields.html" %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="customer-modal" title="Nuevo cliente" submit_label="Crear cliente" quick_create_url=customer_qc_url target_select="id_customer" body_template="files/partials/quick_create_customer_fields.html" size="wide" %}
 {% endif %}
 
 {% url 'files:archive-class-quick-create' as archive_class_qc_url %}
@@ -118,13 +131,21 @@ cliente, pero no viven dentro de él (ver la nota del partial).{% endcomment %}
 
 {% comment %}Modales de SEGUNDO nivel: los abren los "+" que están dentro del
 modal de cliente. Sin ellos, un usuario con los catálogos vacíos se queda con
-dos <select> obligatorios que no puede rellenar desde ninguna parte, ahora que
-no hay pantalla de alta aislada.{% endcomment %}
+<select> que no puede rellenar desde ninguna parte, ahora que no hay pantalla de
+alta aislada. Sigue habiendo dos niveles de apilado, así que MAX_STACK_DEPTH de
+quick_create_modals.js no cambia.
+
+target_select son los ids que emite el CustomerForm del modal con su
+auto_id="qc-%s" (ver _upload_page_context), de ahí el guion bajo de
+qc-activity_type.{% endcomment %}
 {% if perms.files.add_classname %}
   {% include "files/partials/quick_create_modal.html" with modal_id="qc-classname-modal" title="Nueva clase de cliente" submit_label="Crear clase" quick_create_url=classname_qc_url target_select="qc-classname" manage_url=classname_list_url %}
 {% endif %}
 {% if perms.files.add_activitytype %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="qc-activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="qc-activity-type" manage_url=activitytype_list_url %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="qc-activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="qc-activity_type" manage_url=activitytype_list_url %}
+{% endif %}
+{% if perms.files.add_persontype %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="qc-persontype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=persontype_qc_url target_select="qc-person_type" manage_url=persontype_list_url %}
 {% endif %}
 {% endblock %}
 

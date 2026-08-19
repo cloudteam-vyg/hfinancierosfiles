@@ -118,9 +118,14 @@
     });
 
     // Un solo aviso de resumen. En un modal también se ve: los toasts están en
-    // z-index 1100, por encima de toda la pila de modales. Así .hf-modal-errors
-    // queda reservado en exclusiva a los errores del SERVIDOR (los que escribe
-    // showErrors() en quick_create_modals.js) -- un escritor por elemento.
+    // z-index 1100, por encima de toda la pila de modales.
+    //
+    // Los errores del SERVIDOR usan el mismo pintado por campo, vía la API que
+    // se expone al final de este archivo: un error de "campo obligatorio" se ve
+    // igual venga del navegador o de Django. .hf-modal-errors queda entonces
+    // para lo que NO se puede colgar de un campo (errores de formulario
+    // completo, o una clave que el modal no muestra) -- ver showErrors() en
+    // quick_create_modals.js.
     if (window.HFToast) window.HFToast.show(SUMMARY_MSG, "error");
 
     var primero = invalidos[0];
@@ -184,6 +189,20 @@
     // Un único listener en document y en fase de captura. Ver onSubmit().
     document.addEventListener("submit", onSubmit, true);
   }
+
+  /* Pintado por campo, para quien tenga errores que no vienen de la Constraint
+   * Validation API -- hoy, los que devuelve el servidor en JSON al enviar un
+   * modal de alta rápida (quick_create_modals.js::showErrors).
+   *
+   * Se expone el pintor y NO se reimplementa allí: un mismo error tiene que
+   * verse igual venga de donde venga, y los listeners de input/change que
+   * registra init() ya limpian estos nodos cuando el usuario corrige el campo,
+   * sin importar quién los escribió.
+   */
+  window.HFFormValidate = {
+    paintFieldError: pintarError,
+    clearFieldError: limpiarError,
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();

@@ -7,7 +7,7 @@ from .uploads import validate_upload_size
 class FileArchiveAdminForm(forms.ModelForm):
     class Meta:
         model = FileArchive
-        fields = ("customer", "archive_class", "name", "opening_date", "due_date", "file")
+        fields = ("customer", "archive_class", "name", "contact", "opening_date", "due_date", "file")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

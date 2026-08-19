@@ -392,8 +392,11 @@
 
     if (!combos.length) return;
 
-    // capture:true es lo que atrapa el scroll DENTRO de .modal-content: un
-    // scroll en un contenedor anidado no burbujea hasta window.
+    // capture:true es lo que atrapa el scroll DENTRO del cuerpo del modal
+    // (.hf-modal-body): un scroll en un contenedor anidado no burbujea hasta
+    // window. Da igual cuál sea ese contenedor -- la captura los ve todos --,
+    // así que mover el overflow de .modal-content a .hf-modal-body para dejar
+    // la cabecera fija no rompió esto.
     var pendiente = false;
     var reposicionar = function () {
       if (pendiente) return;
