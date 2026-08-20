@@ -212,6 +212,7 @@ vuelve a mostrar en el formulario.
 | POST | `/api/class-names/quick-create/` | `files:classname-quick-create` | Alta rápida de clase de cliente → `{id, label}` |
 | POST | `/api/activity-types/quick-create/` | `files:activitytype-quick-create` | Alta rápida de tipo de actividad → `{id, label}` |
 | POST | `/api/person-types/quick-create/` | `files:persontype-quick-create` | Alta rápida de tipo de persona → `{id, label}` |
+| GET | `/api/me/` | `authentication:me` | Rol activo y permisos del usuario en sesión → JSON |
 
 Clientes y personas exponen el CRUD habitual bajo `/clientes/` y `/personas/`.
 
@@ -234,22 +235,47 @@ mayúsculas (`name` no lleva `unique=True` en la base: ver la deuda técnica).
 
 ## Permisos
 
-El grupo **"Usuarios estándar"** se crea y mantiene solo (ver
-`authentication/signals.py`): otorga `add` y `change` sobre los siete modelos de
-`MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass, ClassName,
-ActivityType y PersonType), **nunca `delete`** ni `view`. Todo usuario nuevo que
-no sea superusuario entra a ese grupo automáticamente.
+Hay 4 grupos nativos de Django, creados y mantenidos solos (ver
+`authentication/signals.py`), con esta matriz de permisos sobre los siete
+modelos de `MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass,
+ClassName, ActivityType y PersonType):
 
-Los tres catálogos de cliente necesitan `add` justamente porque el modal es su
-única vía de alta: sin ese permiso, un usuario estándar no podría crear el
-catálogo que su propio formulario le ofrece.
+| Grupo       | Ver | Crear | Editar | Eliminar |
+|-------------|-----|-------|--------|----------|
+| Admin       | ✅  | ✅    | ✅     | ❌       |
+| Colaborador | ✅  | ✅    | ✅     | ❌       |
+| Estandar    | ✅  | ✅    | ❌     | ❌       |
+| Basico      | ✅  | ❌    | ❌     | ❌       |
+
+**Nadie, en ningún grupo, recibe `delete`.** El borrado queda reservado a
+superusuarios reales de Django (`is_superuser=True`), que ignoran `has_perm`
+por completo — eso es comportamiento nativo de Django, ajeno a estos 4 grupos.
+
+Todo usuario nuevo que no sea superusuario entra automáticamente al grupo
+**Estandar**. Los tres catálogos de cliente necesitan `add` en
+Estandar/Colaborador/Admin justamente porque el modal es su única vía de
+alta: sin ese permiso, esos roles no podrían crear el catálogo que su propio
+formulario les ofrece.
 
 Ver y descargar archivos solo requiere estar autenticado: no hay noción de
 "clientes propios" por usuario.
 
 ```bash
-python manage.py ensure_standard_group   # idempotente
+python manage.py migrate
+python manage.py setup_groups   # idempotente: crea/actualiza los 4 grupos y
+                                 # migra "Usuarios estándar" -> "Estandar" si existía
 ```
+
+### Probar los 4 roles manualmente
+
+1. `python manage.py createsuperuser` (o usa uno existente) para entrar a `/admin/`.
+2. `python manage.py migrate && python manage.py setup_groups` para asegurar que los 4 grupos existen.
+3. En `/admin/auth/user/`, crea un usuario de prueba y ábrelo; en el widget "Groups" asígnalo a **uno solo** de los 4 grupos.
+4. Inicia sesión como ese usuario en `/login/` (usa una ventana de incógnito para no perder tu sesión de superusuario).
+5. **Basico**: las listas (`/clientes/`, `/personas/`, `/archivos/`) cargan, pero no aparece ningún botón "Crear"/"Editar"/"Eliminar"; entrar directo a una URL de alta/edición (p. ej. `/clientes/nuevo/`) da 403.
+6. **Estandar**: aparece "Crear" (y los modales de alta rápida de catálogos funcionan), pero no "Editar" ni "Eliminar"; las URLs directas de edición dan 403.
+7. **Colaborador** / **Admin**: además aparece "Editar" y funciona. "Eliminar" nunca aparece ni funciona para ningún rol — es el único invariante que no cambia.
+8. Repite el paso 3 agregando un segundo grupo al mismo usuario para confirmar que el badge de rol (barra superior) y `/api/me/` muestran el de mayor prioridad (Admin > Colaborador > Estandar > Basico).
 
 ---
 

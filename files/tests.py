@@ -276,10 +276,10 @@ class FileArchiveUpdateViewTests(ArchiveFixtureTestCase):
 
     def test_requires_change_permission(self):
         user = User.objects.create_user("sin_permiso", password="x")
-        # Un usuario nuevo se asigna automáticamente al grupo "Usuarios
-        # estándar" (ver authentication/signals.py), que SÍ tiene
-        # change_filearchive -- hay que quitarlo explícitamente para
-        # simular a alguien realmente sin el permiso.
+        # Un usuario nuevo se asigna automáticamente al grupo "Estandar"
+        # (ver authentication/signals.py), que SÍ tiene change_filearchive
+        # -- hay que quitarlo explícitamente para simular a alguien
+        # realmente sin el permiso.
         user.groups.clear()
         self.client.force_login(user)
         resp = self.client.get(self.url)
@@ -303,8 +303,8 @@ class FileArchiveUpdateViewTests(ArchiveFixtureTestCase):
 
     def test_edit_form_hides_quick_create_without_permission(self):
         user = User.objects.create_user("edita_sin_catalogo", password="x")
-        # groups.clear() es imprescindible: el grupo estándar concede
-        # add_archiveclass (ver el comentario de test_requires_change_permission).
+        # groups.clear() es imprescindible: el grupo por defecto ("Estandar")
+        # concede add_archiveclass (ver el comentario de test_requires_change_permission).
         user.groups.clear()
         user.user_permissions.add(Permission.objects.get(codename="change_filearchive"))
         self.client.force_login(user)
@@ -526,7 +526,7 @@ class ClassNameCrudTests(TestCase):
 
     def _login(self, *codenames):
         user = User.objects.create_user(f"cn_{'_'.join(codenames) or 'plain'}", password="x")
-        user.groups.clear()  # el grupo estándar se asigna solo; aquí se controla
+        user.groups.clear()  # el grupo "Estandar" se asigna solo; aquí se controla
         for codename in codenames:
             user.user_permissions.add(Permission.objects.get(codename=codename))
         self.client.force_login(user)
@@ -543,8 +543,8 @@ class ClassNameCrudTests(TestCase):
 
         El 200 ES la aserción: el botón "Nueva clase" vivía dentro de un
         {% if perms.files.add_classname %}, y {% url %} levanta NoReverseMatch
-        al renderizar -> 500 para todo usuario estándar (el grupo concede
-        add_classname). test_list_is_visible_to_any_authenticated_user no lo
+        al renderizar -> 500 para todo usuario del grupo "Estandar" (que
+        concede add_classname). test_list_is_visible_to_any_authenticated_user no lo
         detecta porque entra sin permisos y el {% if %} nunca se evalúa.
         """
         self._login("add_classname")
@@ -571,8 +571,8 @@ class ClassNameCrudTests(TestCase):
         self.classname.refresh_from_db()
         self.assertEqual(self.classname.name, "Persona moral S.A.")
 
-    def test_delete_requires_permission_not_granted_to_standard_group(self):
-        # El grupo "Usuarios estándar" nunca recibe delete (signals.py).
+    def test_delete_requires_permission_not_granted_to_any_role_group(self):
+        # Ningún grupo de rol recibe delete (signals.py).
         self._login("add_classname", "change_classname")
         resp = self.client.post(reverse("files:classname-delete", args=[self.classname.pk]))
         self.assertEqual(resp.status_code, 403)
@@ -659,7 +659,7 @@ class PersonTypeCrudTests(TestCase):
 
     def test_list_renders_for_user_with_add_permission(self):
         # Mismo caso de 500 por {% url %} muerto que en ClassNameCrudTests: el
-        # grupo estándar concede add_persontype, así que este es el camino real.
+        # grupo "Estandar" concede add_persontype, así que este es el camino real.
         self._login("add_persontype")
         resp = self.client.get(reverse("files:persontype-list"))
         self.assertEqual(resp.status_code, 200)

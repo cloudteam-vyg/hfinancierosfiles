@@ -65,8 +65,8 @@ class ClassNameListView(LoginRequiredMixin, ListView):
     context_object_name = "classnames"
     paginate_by = 25
     ordering = ("name",)
-    # Sin permission_required, igual que Cliente/Persona: el grupo "Usuarios
-    # estándar" tiene add/change pero no view (ver authentication/signals.py).
+    # Sin permission_required, igual que Cliente/Persona: listar solo exige
+    # estar autenticado, sea cual sea el rol (ver authentication/signals.py).
 
 
 # No hay CreateView: el alta vive solo en el modal
@@ -178,9 +178,9 @@ class CustomerListView(LoginRequiredMixin, ListView):
     context_object_name = "customers"
     paginate_by = 25
     ordering = ("name",)
-    # Sin permission_required a propósito: el grupo "Usuarios estándar" solo
-    # tiene add/change (ver authentication/signals.py), no view_customer.
-    # Cualquier usuario autenticado puede listar.
+    # Sin permission_required a propósito: listar solo exige estar
+    # autenticado (ver authentication/signals.py), independientemente del
+    # rol -- los 4 grupos conceden view_customer de todas formas.
 
 
 # Las dos usan form_class (CustomerForm) y no `fields`: es la única forma de

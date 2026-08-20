@@ -10,10 +10,10 @@ class AuthenticationConfig(AppConfig):
     def ready(self):
         from . import signals  # registra el receiver post_save de User
 
-        def _ensure_group_after_migrate(sender, **kwargs):
-            signals.ensure_standard_group()
+        def _ensure_groups_after_migrate(sender, **kwargs):
+            signals.ensure_role_groups()
 
         post_migrate.connect(
-            _ensure_group_after_migrate,
-            dispatch_uid="authentication.ensure_standard_group_post_migrate",
+            _ensure_groups_after_migrate,
+            dispatch_uid="authentication.ensure_role_groups_post_migrate",
         )

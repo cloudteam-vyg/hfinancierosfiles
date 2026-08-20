@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
+from . import views
+
 app_name = "authentication"
 
 urlpatterns = [
@@ -17,4 +19,7 @@ urlpatterns = [
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    # Mismo prefijo `api/` que usan los endpoints quick-create de
+    # files/urls.py -- sin colisión, pero conviene no duplicar rutas ahí.
+    path("api/me/", views.me_view, name="me"),
 ]
