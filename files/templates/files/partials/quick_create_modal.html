@@ -42,7 +42,7 @@ plantilla y se puedan grepear juntas.{% endcomment %}
     porta a <body>, así que el overflow y el transform de .modal-content no la
     recortan.{% endcomment %}
     <form id="{{ modal_id }}-form" class="hf-modal-body" novalidate data-hf-validate
-          data-hf-searchable data-hf-searchable-min-options="8"
+          data-hf-searchable data-hf-searchable-min-options="1"
           data-quick-create-url="{{ quick_create_url }}"
           data-target-select="{{ target_select }}">
       {% csrf_token %}

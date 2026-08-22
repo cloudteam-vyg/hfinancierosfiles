@@ -68,11 +68,11 @@ class EnsureRoleGroupsTests(TestCase):
             self.assertEqual(primero[name].pk, segundo[name].pk)
         self.assertEqual(Group.objects.filter(name__in=ROLE_GROUPS).count(), 4)
 
-    def test_grants_add_persontype_to_estandar(self):
+    def test_grants_add_personactivitytype_to_estandar(self):
         # Explícito y aparte del test genérico: es el permiso sin el que el
         # modal "+ Nuevo" del campo "Tipo de persona" devuelve 403.
         groups = ensure_role_groups()
-        self.assertTrue(groups["Estandar"].permissions.filter(codename="add_persontype").exists())
+        self.assertTrue(groups["Estandar"].permissions.filter(codename="add_personactivitytype").exists())
 
 
 class DefaultGroupAssignmentTests(TestCase):
@@ -80,7 +80,7 @@ class DefaultGroupAssignmentTests(TestCase):
     def test_new_non_superuser_lands_in_estandar(self):
         user = User.objects.create_user("nueva", password="x")
         self.assertTrue(user.groups.filter(name=DEFAULT_ROLE_GROUP_NAME).exists())
-        self.assertTrue(user.has_perm("files.add_persontype"))
+        self.assertTrue(user.has_perm("files.add_personactivitytype"))
 
     def test_new_user_not_added_to_admin_or_colaborador(self):
         user = User.objects.create_user("nueva2", password="x")

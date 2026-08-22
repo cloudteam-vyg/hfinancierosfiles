@@ -19,7 +19,7 @@
   </div>
 </div>
 
-<form method="post" id="hf-upload-form" enctype="multipart/form-data" novalidate data-hf-validate data-hf-searchable data-hf-searchable-min-options="8">
+<form method="post" id="hf-upload-form" enctype="multipart/form-data" novalidate data-hf-validate data-hf-searchable data-hf-searchable-min-options="1">
   {% csrf_token %}
 
   <div class="upload-grid">
@@ -107,15 +107,11 @@
   </div>
 </form>
 
-{% comment %}Los CINCO modales de esta página son hermanos al nivel superior de
-app_content, incluidos los tres de segundo nivel: se abren DESDE el modal de
-cliente, pero no viven dentro de él (ver la nota del partial).{% endcomment %}
-{% url 'files:classname-quick-create' as classname_qc_url %}
-{% url 'files:classname-list' as classname_list_url %}
-{% url 'files:activitytype-quick-create' as activitytype_qc_url %}
-{% url 'files:activitytype-list' as activitytype_list_url %}
-{% url 'files:persontype-quick-create' as persontype_qc_url %}
-{% url 'files:persontype-list' as persontype_list_url %}
+{% comment %}Los TRES modales de esta página son hermanos al nivel superior de
+app_content, incluido el de segundo nivel: se abre DESDE el modal de
+cliente, pero no vive dentro de él (ver la nota del partial).{% endcomment %}
+{% url 'files:personactivitytype-quick-create' as personactivitytype_qc_url %}
+{% url 'files:personactivitytype-list' as personactivitytype_list_url %}
 
 {% comment %}size="wide": su cuerpo es el CustomerForm completo (13 campos) en
 dos columnas, el mismo formulario que /clientes/nuevo/.{% endcomment %}
@@ -129,23 +125,17 @@ dos columnas, el mismo formulario que /clientes/nuevo/.{% endcomment %}
   {% include "files/partials/quick_create_modal.html" with modal_id="archive-class-modal" title="Nueva clase de archivo" submit_label="Crear clase" quick_create_url=archive_class_qc_url target_select="id_archive_class" %}
 {% endif %}
 
-{% comment %}Modales de SEGUNDO nivel: los abren los "+" que están dentro del
-modal de cliente. Sin ellos, un usuario con los catálogos vacíos se queda con
-<select> que no puede rellenar desde ninguna parte, ahora que no hay pantalla de
-alta aislada. Sigue habiendo dos niveles de apilado, así que MAX_STACK_DEPTH de
+{% comment %}Modal de SEGUNDO nivel: lo abre el "+" que está dentro del modal
+de cliente. Sin él, un usuario con el catálogo vacío se queda con un <select>
+que no puede rellenar desde ninguna parte, ahora que no hay pantalla de alta
+aislada. Sigue habiendo dos niveles de apilado, así que MAX_STACK_DEPTH de
 quick_create_modals.js no cambia.
 
-target_select son los ids que emite el CustomerForm del modal con su
+target_select es el id que emite el CustomerForm del modal con su
 auto_id="qc-%s" (ver _upload_page_context), de ahí el guion bajo de
-qc-activity_type.{% endcomment %}
-{% if perms.files.add_classname %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="qc-classname-modal" title="Nueva clase de cliente" submit_label="Crear clase" quick_create_url=classname_qc_url target_select="qc-classname" manage_url=classname_list_url %}
-{% endif %}
-{% if perms.files.add_activitytype %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="qc-activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="qc-activity_type" manage_url=activitytype_list_url %}
-{% endif %}
-{% if perms.files.add_persontype %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="qc-persontype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=persontype_qc_url target_select="qc-person_type" manage_url=persontype_list_url %}
+qc-tipo_persona_actividad.{% endcomment %}
+{% if perms.files.add_personactivitytype %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="qc-personactivitytype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=personactivitytype_qc_url target_select="qc-tipo_persona_actividad" manage_url=personactivitytype_list_url %}
 {% endif %}
 {% endblock %}
 

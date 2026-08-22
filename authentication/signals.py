@@ -19,9 +19,7 @@ MANAGED_MODELS = (
     ("files", "person"),
     ("files", "filearchive"),
     ("files", "archiveclass"),
-    ("files", "classname"),
-    ("files", "activitytype"),
-    ("files", "persontype"),
+    ("files", "personactivitytype"),
 )
 
 # Matriz de permisos por rol -- nunca incluye "delete": ningún rol puede
@@ -71,14 +69,14 @@ def _permissions_for_prefixes(prefixes):
 def ensure_role_groups():
     """Crea (si falta) los cuatro grupos de rol (ROLE_GROUPS) y fija el
     conjunto de permisos de cada uno de forma idempotente, según la matriz
-    ROLE_PERMISSION_PREFIXES sobre los siete modelos de MANAGED_MODELS.
+    ROLE_PERMISSION_PREFIXES sobre los cinco modelos de MANAGED_MODELS.
     Llamarlo N veces da siempre el mismo resultado, ya que usa .set() en vez
     de .add().
 
-    Los tres catálogos de cliente (ClassName, ActivityType, PersonType)
-    necesitan `add` en Estandar/Colaborador/Admin porque su única vía de alta
-    es el modal de alta rápida del formulario de Cliente: sin el permiso, un
-    usuario no podría crear el catálogo que su propio formulario le ofrece.
+    El catálogo de cliente (PersonActivityType) necesita `add` en
+    Estandar/Colaborador/Admin porque su única vía de alta es el modal de
+    alta rápida del formulario de Cliente: sin el permiso, un usuario no
+    podría crear el catálogo que su propio formulario le ofrece.
 
     Devuelve un dict {nombre_de_grupo: Group} si tuvo éxito, o None si algún
     rol no pudo resolver sus permisos todavía -- en ese caso no crea ningún

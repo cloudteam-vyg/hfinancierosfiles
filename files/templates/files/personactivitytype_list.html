@@ -1,10 +1,10 @@
 {% extends "app_base.html" %}
-{% block title %}Tipos de actividad{% endblock %}
+{% block title %}Tipos de persona{% endblock %}
 {% block app_content %}
 <div class="page-header">
   <div>
-    <h1>Tipos de actividad</h1>
-    <p>{{ page_obj.paginator.count }} clase{{ page_obj.paginator.count|pluralize }} de cliente</p>
+    <h1>Tipos de persona</h1>
+    <p>{{ page_obj.paginator.count }} tipo{{ page_obj.paginator.count|pluralize }} de persona</p>
   </div>
   {% comment %}Sin botón "Nuevo tipo": esta pantalla es solo mantenimiento
   (editar/eliminar). El alta vive en el modal de alta rápida del formulario que
@@ -18,24 +18,24 @@
     <div style="text-align: right;">Clientes</div>
     <div></div>
   </div>
-  {% for activity_type in activity_types %}
+  {% for person_type in person_activity_types %}
   <div class="grid-row" style="grid-template-columns: 1.4fr 2fr .8fr 100px;">
-    <div class="file-name">{{ activity_type.name }}</div>
-    <div style="font-size: 13px; color: var(--muted);">{{ activity_type.description|default:"—" }}</div>
-    <div class="mono" style="font-size: 12.5px; color: var(--muted); text-align: right;">{{ activity_type.customers.count }}</div>
+    <div class="file-name">{{ person_type.name }}</div>
+    <div style="font-size: 13px; color: var(--muted);">{{ person_type.description|default:"—" }}</div>
+    <div class="mono" style="font-size: 12.5px; color: var(--muted); text-align: right;">{{ person_type.customers.count }}</div>
     <div class="row-actions" style="gap: 6px;">
-      {% if perms.files.change_activitytype %}
-        <a href="{% url 'files:activitytype-update' activity_type.pk %}" class="btn btn-sm">Editar</a>
+      {% if perms.files.change_personactivitytype %}
+        <a href="{% url 'files:personactivitytype-update' person_type.pk %}" class="btn btn-sm">Editar</a>
       {% endif %}
-      {% if perms.files.delete_activitytype %}
-        <a href="{% url 'files:activitytype-delete' activity_type.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+      {% if perms.files.delete_personactivitytype %}
+        <a href="{% url 'files:personactivitytype-delete' person_type.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
       {% endif %}
     </div>
   </div>
   {% empty %}
   <div class="grid-row-empty">
-    No hay tipos de actividad registrados. Se crean desde el botón «+ Nuevo» que
-    hay junto al campo «Tipo de actividad» al dar de alta un cliente.
+    No hay tipos de persona registrados. Se crean desde el botón «+ Nuevo» que
+    hay junto al campo «Tipo de persona» al dar de alta un cliente.
   </div>
   {% endfor %}
 </div>

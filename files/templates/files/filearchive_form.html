@@ -4,7 +4,7 @@
 {% block app_content %}
 <h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">Editar archivo</h1>
 <div class="card" style="max-width: 560px;">
-  <form method="post" data-hf-validate data-hf-searchable data-hf-searchable-min-options="8">
+  <form method="post" data-hf-validate data-hf-searchable data-hf-searchable-min-options="1">
     {% csrf_token %}
     {{ form.non_field_errors }}
     {% comment %}Leyenda entera con aria-hidden: marcar solo el * de dentro

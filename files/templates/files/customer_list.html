@@ -19,7 +19,7 @@
     <div>Nombre</div>
     <div>Grupo</div>
     <div>Correo</div>
-    <div>Tipo de actividad</div>
+    <div>Tipo de persona</div>
     <div></div>
   </div>
   {% for customer in customers %}
@@ -27,7 +27,7 @@
     <div class="file-name">{{ customer.name|default:"—" }}</div>
     <div style="font-size: 13px; color: var(--muted);">{{ customer.group|default:"—" }}</div>
     <div style="font-size: 13px; color: var(--muted);">{{ customer.email|default:"—" }}</div>
-    <div style="font-size: 13px; color: var(--muted);">{{ customer.activity_type.name }}</div>
+    <div style="font-size: 13px; color: var(--muted);">{{ customer.tipo_persona_actividad.name|default:"—" }}</div>
     <div class="row-actions" style="gap: 6px;">
       {% if perms.files.change_customer %}
         <a href="{% url 'files:customer-update' customer.pk %}" class="btn btn-sm">Editar</a>

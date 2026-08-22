@@ -1,8 +1,8 @@
 {% extends "app_base.html" %}
 {% load static %}
-{% block title %}Editar clase de cliente{% endblock %}
+{% block title %}Editar tipo de persona{% endblock %}
 {% block app_content %}
-<h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">Editar clase de cliente</h1>
+<h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">Editar tipo de persona</h1>
 <div class="card" style="max-width: 560px;">
   <form method="post" data-hf-validate>
     {% csrf_token %}
@@ -24,7 +24,7 @@
     {% endfor %}
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">Guardar</button>
-      <a href="{% url 'files:classname-list' %}" class="btn">Cancelar</a>
+      <a href="{% url 'files:personactivitytype-list' %}" class="btn">Cancelar</a>
     </div>
   </form>
 </div>

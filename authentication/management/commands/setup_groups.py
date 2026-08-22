@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = (
         f"Crea/actualiza los {len(ROLE_GROUPS)} grupos de rol ({', '.join(ROLE_GROUPS)}) "
         "con su matriz de permisos view/add/change (nunca delete) sobre Customer, Person, "
-        "FileArchive, ArchiveClass, ClassName, ActivityType y PersonType. Además migra a "
+        "FileArchive, ArchiveClass y PersonActivityType. Además migra a "
         f"'{DEFAULT_ROLE_GROUP_NAME}' a los miembros del grupo retirado '{LEGACY_GROUP_NAME}' "
         "(y lo elimina) y a cualquier usuario sin grupo de rol. Idempotente."
     )

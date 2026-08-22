@@ -10,45 +10,21 @@ def file_archive_upload_to(instance, filename):
     # clientes/clases con el mismo nombre.
     return f"file_archives/{instance.id}/{filename}"
 
-# Los cuatro catálogos (ClassName, ActivityType, PersonType, ArchiveClass) llevan
-# `ordering` a nivel de Meta y no en cada llamada: el orden de las opciones
-# de un <select> lo decidían tres sitios distintos con tres políticas
-# distintas (_upload_page_context con .order_by("name"), FileArchiveEditForm
-# con lo suyo, y FileArchiveUploadForm sin nada -> orden físico de Postgres,
-# que se rebaraja tras cualquier UPDATE). Con esto, todo ModelChoiceField y
-# todo changelist del admin quedan predecibles sin que cada call site se
-# acuerde. NOTA: addAndSelectOption() del JS hace appendChild, así que una
-# opción recién creada desde un modal se queda al final hasta la siguiente
-# carga -- eso es del cliente, no de aquí.
-class ClassName(models.Model):
-    name = models.CharField(verbose_name="Nombre", max_length=100)
-    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
-
-    def __str__(self):
-        return self.name
-    class Meta:
-        verbose_name = "Clase de cliente"
-        verbose_name_plural = "Clases de cliente"
-        ordering = ("name",)
-
-
-class ActivityType(models.Model):
-    name = models.CharField(verbose_name="Nombre", max_length=100)
-    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
-
-    def __str__(self):
-        return self.name
-    class Meta:
-        verbose_name = "Tipo de actividad"
-        verbose_name_plural = "Tipos de actividad"
-        ordering = ("name",)
-
-
-class PersonType(models.Model):
+# Los dos catálogos (PersonActivityType, ArchiveClass) llevan `ordering` a
+# nivel de Meta y no en cada llamada: el orden de las opciones de un <select>
+# lo decidían tres sitios distintos con tres políticas distintas
+# (_upload_page_context con .order_by("name"), FileArchiveEditForm con lo
+# suyo, y FileArchiveUploadForm sin nada -> orden físico de Postgres, que se
+# rebaraja tras cualquier UPDATE). Con esto, todo ModelChoiceField y todo
+# changelist del admin quedan predecibles sin que cada call site se acuerde.
+# NOTA: addAndSelectOption() del JS hace appendChild, así que una opción
+# recién creada desde un modal se queda al final hasta la siguiente carga --
+# eso es del cliente, no de aquí.
+class PersonActivityType(models.Model):
     """Naturaleza jurídica del cliente (Física, Moral...).
 
     Mismo patrón que los otros catálogos, pero su FK en Customer es opcional
-    y SET_NULL: ver el comentario de Customer.person_type.
+    y SET_NULL: ver el comentario de Customer.tipo_persona_actividad.
     """
 
     name = models.CharField(verbose_name="Nombre", max_length=100)
@@ -63,7 +39,6 @@ class PersonType(models.Model):
 
 
 class Customer(models.Model):
-    classname = models.ForeignKey(ClassName, on_delete=models.CASCADE, related_name='customers', verbose_name="Clase de cliente")
     # Obligatorio a nivel de MODELO, no solo de formulario: antes era
     # null=True/blank=True y solo QuickCustomerForm lo forzaba a required, así
     # que /clientes/nuevo/ y el admin sí dejaban crear clientes sin nombre y
@@ -72,19 +47,18 @@ class Customer(models.Model):
     # fixtures, bulk_create): la regla vive en la única capa que nadie puede
     # saltarse. Ver migración 0003.
     name = models.CharField(verbose_name="Nombre", max_length=100)
+    contacto = models.CharField(verbose_name="Contacto", max_length=100, blank=True, null=True)
     group = models.CharField(verbose_name="Grupo", max_length=100, null=True, blank=True)
     email = models.EmailField(verbose_name="Correo electrónico", unique=True, null=True, blank=True)
     phone_number = models.CharField(verbose_name="Número de teléfono", max_length=20, blank=True, null=True)
     address = models.TextField(verbose_name="Dirección", blank=True, null=True)
     country = models.CharField(verbose_name="País", max_length=100, blank=True, null=True)
-    activity_type = models.ForeignKey(ActivityType, on_delete=models.CASCADE, related_name='customers', verbose_name="Tipo de actividad")
-    # ASIMETRÍA DELIBERADA con classname/activity_type, que son CASCADE: este FK
-    # es opcional, así que borrar un tipo de persona no puede significar borrar
-    # los clientes que lo usaban (y con ellos, en cascada, sus archivos). Un
-    # cliente sin tipo de persona es un estado válido; un cliente borrado por
-    # limpiar un catálogo, no.
-    person_type = models.ForeignKey(
-        PersonType, on_delete=models.SET_NULL, null=True, blank=True,
+    # Opcional y SET_NULL: borrar un tipo de persona no puede significar
+    # borrar los clientes que lo usaban (y con ellos, en cascada, sus
+    # archivos). Un cliente sin tipo de persona es un estado válido; un
+    # cliente borrado por limpiar un catálogo, no.
+    tipo_persona_actividad = models.ForeignKey(
+        PersonActivityType, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='customers', verbose_name="Tipo de persona",
     )
     # La etiqueta cubre los dos casos porque el campo también los cubre: para
@@ -103,13 +77,15 @@ class Customer(models.Model):
         # Esta cadena ES la etiqueta del <option> en los <select> de cliente
         # (subida, edición de archivo, personas) y la que devuelve el endpoint
         # de alta rápida en su campo "label" -- un None que se cuele aquí es
-        # visible para el usuario, no un detalle de depuración. `group` sigue
-        # siendo opcional, así que se arma con las partes presentes en vez de
-        # interpolar a ciegas: antes salía "Cliente - None - Comercio".
+        # visible para el usuario, no un detalle de depuración. `group` y
+        # `tipo_persona_actividad` son opcionales, así que se arma con las
+        # partes presentes en vez de interpolar a ciegas: antes salía
+        # "Cliente - None - Comercio".
         partes = [self.name]
         if self.group:
             partes.append(self.group)
-        partes.append(self.activity_type.name)
+        if self.tipo_persona_actividad:
+            partes.append(self.tipo_persona_actividad.name)
         return " - ".join(partes)
 
     class Meta:

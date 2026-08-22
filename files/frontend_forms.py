@@ -1,7 +1,7 @@
 from django import forms
 
 from .models import (
-    ActivityType, ArchiveClass, ClassName, Customer, FileArchive, Person, PersonType,
+    ArchiveClass, Customer, FileArchive, Person, PersonActivityType,
 )
 from .uploads import validate_upload_size
 
@@ -11,8 +11,8 @@ DATE_INPUT = forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
 def _customer_choices():
     """Queryset para todo <select> de cliente.
 
-    Customer.__str__ toca self.activity_type.name, así que sin
-    select_related cada <option> dispara una query aparte (N+1). El
+    Customer.__str__ puede tocar self.tipo_persona_actividad.name, así que
+    sin select_related cada <option> dispara una query aparte (N+1). El
     order_by fija el orden de las opciones, que Customer no declara en
     Meta a propósito (sus ListViews ya lo hacen por su cuenta).
 
@@ -20,7 +20,7 @@ def _customer_choices():
     ARCHITECTURE.md ("una fábrica rompería `grep`") -- así cada __init__
     sigue diciendo explícitamente qué hace.
     """
-    return Customer.objects.select_related("activity_type").order_by("name")
+    return Customer.objects.select_related("tipo_persona_actividad").order_by("name")
 
 
 class CustomerForm(forms.ModelForm):
@@ -51,8 +51,8 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = (
-            "classname", "name", "group", "email", "phone_number", "address",
-            "country", "activity_type", "person_type", "date_of_constitution",
+            "name", "contacto", "group", "email", "phone_number", "address",
+            "country", "tipo_persona_actividad", "date_of_constitution",
             "web_site", "word_clave", "notes",
         )
         widgets = {
@@ -148,9 +148,9 @@ class PersonForm(forms.ModelForm):
 # NO hay QuickCustomerForm: el modal "+ Nuevo cliente" de /archivos/subir/ usa
 # el mismo CustomerForm de arriba. Existió como "alta mínima" de 4 campos y fue
 # precisamente esa duplicación la que dejó el modal atrás cuando el modelo creció
-# (`person_type` y `notes` solo llegaron a la pantalla dedicada). Si vuelve a
-# hacer falta un subconjunto de campos, que sea un `fields` acotado sobre este
-# mismo form y no un segundo ModelForm que pueda derivar otra vez.
+# (`tipo_persona_actividad` y `notes` solo llegaron a la pantalla dedicada). Si
+# vuelve a hacer falta un subconjunto de campos, que sea un `fields` acotado
+# sobre este mismo form y no un segundo ModelForm que pueda derivar otra vez.
 
 
 # Catálogos usados por el alta de Cliente (y de Archivo). Se pueden crear desde
@@ -158,10 +158,10 @@ class PersonForm(forms.ModelForm):
 # llenar; de hecho es la ÚNICA forma de crearlos en el frontend (no hay página
 # de alta aislada, ver files/urls.py).
 class _QuickCatalogForm(forms.ModelForm):
-    """Base de los cuatro catálogos: mismos campos y misma regla de duplicados.
+    """Base de los catálogos: mismos campos y misma regla de duplicados.
 
     `name` no lleva unique=True en la base de datos (ver la deuda anotada en
-    ARCHITECTURE.md). Con el alta a un clic desde tres sitios distintos, y
+    ARCHITECTURE.md). Con el alta a un clic desde varios sitios distintos, y
     ahora también desde dentro de otro modal, dos "Comercio" se crean sin
     esfuerzo y el <select> acaba mostrando dos opciones idénticas con pk
     distinto. Se valida aquí, en el formulario, porque una constraint nueva
@@ -184,19 +184,7 @@ class QuickArchiveClassForm(_QuickCatalogForm):
         fields = ("name", "description")
 
 
-class QuickClassNameForm(_QuickCatalogForm):
+class QuickPersonActivityTypeForm(_QuickCatalogForm):
     class Meta:
-        model = ClassName
-        fields = ("name", "description")
-
-
-class QuickActivityTypeForm(_QuickCatalogForm):
-    class Meta:
-        model = ActivityType
-        fields = ("name", "description")
-
-
-class QuickPersonTypeForm(_QuickCatalogForm):
-    class Meta:
-        model = PersonType
+        model = PersonActivityType
         fields = ("name", "description")

@@ -4,7 +4,7 @@
 {% block app_content %}
 <h1 style="margin: 0 0 20px; font-size: 22px; font-weight: 600;">{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
 <div class="card" style="max-width: 560px;">
-  <form method="post" data-hf-validate data-hf-searchable data-hf-searchable-min-options="8">
+  <form method="post" data-hf-validate data-hf-searchable data-hf-searchable-min-options="1">
     {% csrf_token %}
     {{ form.non_field_errors }}
     {% comment %}Leyenda entera con aria-hidden: marcar solo el * de dentro
@@ -13,11 +13,11 @@
     la obligatoriedad campo a campo por required/aria-required.{% endcomment %}
     <p class="form-legend" aria-hidden="true">Los campos con <span class="form-required">*</span> son obligatorios.</p>
     {% comment %}Cada campo lo pinta el partial COMPARTIDO con el cuerpo del
-    modal "+ Nuevo cliente" de /archivos/subir/. Sin prefijo: los "+" de esta
-    pantalla abren los modales de primer nivel (classname-modal, etc.), no los
+    modal "+ Nuevo cliente" de /archivos/subir/. Sin prefijo: el "+" de esta
+    pantalla abre el modal de primer nivel (personactivitytype-modal), no el
     qc-* del modal. Un campo nuevo, o un botón "+" nuevo, se toca en un solo
     sitio -- tenerlo en dos es lo que dejó el modal en 4 campos mientras esta
-    pantalla llegaba a 13.{% endcomment %}
+    pantalla llegaba a 12.{% endcomment %}
     {% for field in form %}
       {% include "files/partials/customer_form_field.html" with field=field %}
     {% endfor %}
@@ -32,22 +32,10 @@
 hermanos, nunca dentro del <form> ni uno dentro de otro -- ver la nota del
 partial. {% url %} no se puede pasar a {% include with %}, así que se resuelve
 antes con {% url ... as ... %} (mismo idiom que app_base.html).{% endcomment %}
-{% url 'files:classname-quick-create' as classname_qc_url %}
-{% url 'files:classname-list' as classname_list_url %}
-{% if perms.files.add_classname %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="classname-modal" title="Nueva clase de cliente" submit_label="Crear clase" quick_create_url=classname_qc_url target_select="id_classname" manage_url=classname_list_url %}
-{% endif %}
-
-{% url 'files:activitytype-quick-create' as activitytype_qc_url %}
-{% url 'files:activitytype-list' as activitytype_list_url %}
-{% if perms.files.add_activitytype %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="activitytype-modal" title="Nuevo tipo de actividad" submit_label="Crear tipo" quick_create_url=activitytype_qc_url target_select="id_activity_type" manage_url=activitytype_list_url %}
-{% endif %}
-
-{% url 'files:persontype-quick-create' as persontype_qc_url %}
-{% url 'files:persontype-list' as persontype_list_url %}
-{% if perms.files.add_persontype %}
-  {% include "files/partials/quick_create_modal.html" with modal_id="persontype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=persontype_qc_url target_select="id_person_type" manage_url=persontype_list_url %}
+{% url 'files:personactivitytype-quick-create' as personactivitytype_qc_url %}
+{% url 'files:personactivitytype-list' as personactivitytype_list_url %}
+{% if perms.files.add_personactivitytype %}
+  {% include "files/partials/quick_create_modal.html" with modal_id="personactivitytype-modal" title="Nuevo tipo de persona" submit_label="Crear tipo" quick_create_url=personactivitytype_qc_url target_select="id_tipo_persona_actividad" manage_url=personactivitytype_list_url %}
 {% endif %}
 {% endblock %}
 

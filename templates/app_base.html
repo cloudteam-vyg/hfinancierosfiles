@@ -25,15 +25,13 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V5"></path><path d="m7.5 9.5 4.5-4.5 4.5 4.5"></path><path d="M4 19h16"></path></svg>
         <span>Nuevo archivo</span>
       </a>
-      {% comment %}Sin entradas para "Clases de cliente", "Tipos de actividad"
-      ni "Tipos de persona": son catálogos que solo se necesitan a media tarea
-      (al dar de alta un cliente), así que su alta vive en el modal del propio
-      formulario y sus pantallas de mantenimiento se alcanzan desde el pie de
-      ese modal. Las rutas /clases-cliente/, /tipos-actividad/ y
-      /tipos-persona/ se plegan al item de Clientes, de quien son dependencias,
-      para que la navegación no quede sin nada resaltado al entrar en
-      ellas.{% endcomment %}
-      <a href="{% url 'files:customer-list' %}" class="app-nav-item{% if '/clientes/' in request.path or '/clases-cliente/' in request.path or '/tipos-actividad/' in request.path or '/tipos-persona/' in request.path %} active{% endif %}">
+      {% comment %}Sin entrada para "Tipos de persona": es un catálogo que solo
+      se necesita a media tarea (al dar de alta un cliente), así que su alta
+      vive en el modal del propio formulario y su pantalla de mantenimiento se
+      alcanza desde el pie de ese modal. La ruta /tipos-persona-actividad/ se
+      pliega al item de Clientes, de quien es dependencia, para que la
+      navegación no quede sin nada resaltado al entrar en ella.{% endcomment %}
+      <a href="{% url 'files:customer-list' %}" class="app-nav-item{% if '/clientes/' in request.path or '/tipos-persona-actividad/' in request.path %} active{% endif %}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5"></path><circle cx="12" cy="7" r="4"></circle></svg>
         <span>Clientes</span>
       </a>

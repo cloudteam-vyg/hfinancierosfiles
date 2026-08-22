@@ -6,15 +6,15 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from .forms import FileArchiveAdminForm
 from .models import (
-    ClassName, ActivityType, PersonType, Customer, Person, ArchiveClass, FileArchive,
+    PersonActivityType, Customer, Person, ArchiveClass, FileArchive,
 )
 from .uploads import stamp_upload_metadata
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'group', 'email', 'phone_number', 'activity_type', 'person_type', 'date_of_constitution')
+    list_display = ('name', 'group', 'email', 'phone_number', 'tipo_persona_actividad', 'date_of_constitution')
     search_fields = ('name', 'group', 'email', 'phone_number')
-    list_filter = ('activity_type', 'person_type')
+    list_filter = ('tipo_persona_actividad',)
 
 
 @admin.register(Person)
@@ -68,18 +68,8 @@ class FileArchiveAdmin(SimpleHistoryAdmin):
             self.message_user(request, f"«{obj.name}» subido.")
 
 
-@admin.register(ClassName)
-class ClassNameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
-    search_fields = ('name',)
-
-@admin.register(ActivityType)
-class ActivityTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
-    search_fields = ('name',)
-
-@admin.register(PersonType)
-class PersonTypeAdmin(admin.ModelAdmin):
+@admin.register(PersonActivityType)
+class PersonActivityTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
     search_fields = ('name',)
 

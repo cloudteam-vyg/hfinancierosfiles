@@ -74,7 +74,7 @@ Se leen del `.env` de la raíz vía `django-environ` (ver `.env.example`).
 core/            Configuración del proyecto (settings, urls, wsgi)
   views.py       Dashboard y /healthz/ (usado por el healthcheck de Dokku)
 files/           App de dominio
-  models.py      ClassName, ActivityType, PersonType, Customer, Person, ArchiveClass, FileArchive
+  models.py      PersonActivityType, Customer, Person, ArchiveClass, FileArchive
   views.py       Listado master-detail, subida, preview, descarga, edición, alta rápida
   uploads.py     Reglas compartidas de subida (tope de tamaño, sellado de metadatos)
   forms.py       Formulario del Admin
@@ -117,9 +117,11 @@ intercepta con `XMLHttpRequest` para mostrar **barra de progreso real**;
   con el mismo estilo que los de cliente (`hf_form_validate.js` expone su
   pintor); el `<ul>` de resumen del modal queda para lo que no se puede colgar de
   un campo concreto.
-- Los desplegables largos se convierten en un **combobox con búsqueda**
+- Los desplegables se convierten en un **combobox con búsqueda**
   (`hf_searchable_select.js`, filtrado sin distinguir acentos ni mayúsculas). El
-  `<select>` nativo permanece como fuente de verdad, así que la página sigue
+  umbral (`data-hf-searchable-min-options`) está en 1, así que se activa en
+  cuanto un catálogo tiene al menos una opción real, no solo en listas largas.
+  El `<select>` nativo permanece como fuente de verdad, así que la página sigue
   funcionando sin JavaScript.
 - Los campos obligatorios llevan **asterisco rojo** derivado de
   `field.field.required` (nunca escrito a mano) más la leyenda "Los campos con *
@@ -198,47 +200,38 @@ vuelve a mostrar en el formulario.
 | GET | `/archivos/<uuid>/descargar/` | `files:archive-download` | Descarga del original |
 | GET/POST | `/archivos/<uuid>/editar/` | `files:archive-update` | Edición de metadatos |
 | POST | `/archivos/<uuid>/eliminar/` | `files:archive-delete` | Borrado |
-| GET | `/clases-cliente/` | `files:classname-list` | Mantenimiento del catálogo (sin alta) |
-| GET/POST | `/clases-cliente/<pk>/editar/` | `files:classname-update` | Edición |
-| POST | `/clases-cliente/<pk>/eliminar/` | `files:classname-delete` | Borrado (avisa del CASCADE) |
-| GET | `/tipos-actividad/` | `files:activitytype-list` | Mantenimiento del catálogo (sin alta) |
-| GET/POST | `/tipos-actividad/<pk>/editar/` | `files:activitytype-update` | Edición |
-| POST | `/tipos-actividad/<pk>/eliminar/` | `files:activitytype-delete` | Borrado (avisa del CASCADE) |
-| GET | `/tipos-persona/` | `files:persontype-list` | Mantenimiento del catálogo (sin alta) |
-| GET/POST | `/tipos-persona/<pk>/editar/` | `files:persontype-update` | Edición |
-| POST | `/tipos-persona/<pk>/eliminar/` | `files:persontype-delete` | Borrado (los clientes quedan sin tipo; **no** hay CASCADE) |
+| GET | `/tipos-persona-actividad/` | `files:personactivitytype-list` | Mantenimiento del catálogo (sin alta) |
+| GET/POST | `/tipos-persona-actividad/<pk>/editar/` | `files:personactivitytype-update` | Edición |
+| POST | `/tipos-persona-actividad/<pk>/eliminar/` | `files:personactivitytype-delete` | Borrado (los clientes quedan sin tipo; **no** hay CASCADE) |
 | POST | `/api/customers/quick-create/` | `files:customer-quick-create` | Alta rápida de cliente → `{id, label}` |
 | POST | `/api/archive-classes/quick-create/` | `files:archive-class-quick-create` | Alta rápida de clase de archivo → `{id, label}` |
-| POST | `/api/class-names/quick-create/` | `files:classname-quick-create` | Alta rápida de clase de cliente → `{id, label}` |
-| POST | `/api/activity-types/quick-create/` | `files:activitytype-quick-create` | Alta rápida de tipo de actividad → `{id, label}` |
-| POST | `/api/person-types/quick-create/` | `files:persontype-quick-create` | Alta rápida de tipo de persona → `{id, label}` |
+| POST | `/api/person-activity-types/quick-create/` | `files:personactivitytype-quick-create` | Alta rápida de tipo de persona → `{id, label}` |
 | GET | `/api/me/` | `authentication:me` | Rol activo y permisos del usuario en sesión → JSON |
 
 Clientes y personas exponen el CRUD habitual bajo `/clientes/` y `/personas/`.
 
-Los tres catálogos de cliente (`ClassName`, `ActivityType`, `PersonType`) **no
-tienen pantalla de alta**, a propósito: solo se necesitan a media tarea,
-mientras se rellena un cliente o una subida, y una pantalla aparte obligaba a
-abandonar el formulario a medio llenar. Su alta vive únicamente en el modal de
-alta rápida; lo que queda bajo `/clases-cliente/`, `/tipos-actividad/` y
-`/tipos-persona/` es la superficie de mantenimiento, a la que se llega desde el
-pie de ese modal (no desde el sidebar, del que se retiraron). `ArchiveClass` va
-más lejos y no tiene ninguna pantalla propia.
+El catálogo de cliente (`PersonActivityType`) **no tiene pantalla de alta**, a
+propósito: solo se necesita a media tarea, mientras se rellena un cliente o
+una subida, y una pantalla aparte obligaba a abandonar el formulario a medio
+llenar. Su alta vive únicamente en el modal de alta rápida; lo que queda bajo
+`/tipos-persona-actividad/` es la superficie de mantenimiento, a la que se
+llega desde el pie de ese modal (no desde el sidebar, del que se retiró).
+`ArchiveClass` va más lejos y no tiene ninguna pantalla propia.
 
-Los cinco endpoints `quick-create` responden `201` con `{"id": …, "label": …}`
+Los tres endpoints `quick-create` responden `201` con `{"id": …, "label": …}`
 o `400` con `{"errors": {campo: [...]}}`, y exigen CSRF (`X-CSRFToken`) y el
-permiso de alta del modelo correspondiente. Los cuatro de catálogo aceptan
-`name` y `description`, y rechazan un `name` que ya exista sin distinguir
-mayúsculas (`name` no lleva `unique=True` en la base: ver la deuda técnica).
+permiso de alta del modelo correspondiente. Los de catálogo aceptan `name` y
+`description`, y rechazan un `name` que ya exista sin distinguir mayúsculas
+(`name` no lleva `unique=True` en la base: ver la deuda técnica).
 
 ---
 
 ## Permisos
 
 Hay 4 grupos nativos de Django, creados y mantenidos solos (ver
-`authentication/signals.py`), con esta matriz de permisos sobre los siete
-modelos de `MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass,
-ClassName, ActivityType y PersonType):
+`authentication/signals.py`), con esta matriz de permisos sobre los cinco
+modelos de `MANAGED_MODELS` (Customer, Person, FileArchive, ArchiveClass y
+PersonActivityType):
 
 | Grupo       | Ver | Crear | Editar | Eliminar |
 |-------------|-----|-------|--------|----------|
@@ -252,7 +245,7 @@ superusuarios reales de Django (`is_superuser=True`), que ignoran `has_perm`
 por completo — eso es comportamiento nativo de Django, ajeno a estos 4 grupos.
 
 Todo usuario nuevo que no sea superusuario entra automáticamente al grupo
-**Estandar**. Los tres catálogos de cliente necesitan `add` en
+**Estandar**. El catálogo de cliente necesita `add` en
 Estandar/Colaborador/Admin justamente porque el modal es su única vía de
 alta: sin ese permiso, esos roles no podrían crear el catálogo que su propio
 formulario les ofrece.

@@ -7,8 +7,8 @@
     ¿Seguro que deseas eliminar <strong style="color: var(--ink);">{{ object }}</strong>? Esta acción no se puede deshacer.
   </p>
   {% if customer_count %}
-    {% comment %}Aviso distinto al de los otros dos catálogos a propósito:
-    Customer.person_type es SET_NULL, no CASCADE, así que aquí NO se borra
+    {% comment %}Aviso a propósito distinto de un borrado en cascada:
+    Customer.tipo_persona_actividad es SET_NULL, así que aquí NO se borra
     nada más. Avisar de un borrado en cascada que no ocurre asusta sin
     motivo.{% endcomment %}
     <ul class="hf-form-errors" style="margin: 0 0 14px; padding-left: 18px;">
@@ -21,7 +21,7 @@
   <form method="post" class="form-actions">
     {% csrf_token %}
     <button type="submit" class="btn btn-danger">Sí, eliminar</button>
-    <a href="{% url 'files:persontype-list' %}" class="btn">Cancelar</a>
+    <a href="{% url 'files:personactivitytype-list' %}" class="btn">Cancelar</a>
   </form>
 </div>
 {% endblock %}

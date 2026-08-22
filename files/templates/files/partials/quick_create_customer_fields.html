@@ -1,26 +1,26 @@
 {% comment %}Cuerpo del modal "Nuevo cliente" de /archivos/subir/.
 
-Renderiza el CustomerForm COMPLETO -- el mismo formulario y los mismos 13 campos
+Renderiza el CustomerForm COMPLETO -- el mismo formulario y los mismos 12 campos
 que /clientes/nuevo/. Antes eran cuatro <select>/<input> escritos a mano
 alimentados por querysets sueltos, y fue justo eso lo que dejó al modal atrás
-cuando el modelo creció: `person_type` y `notes` solo aparecieron en la pantalla
-dedicada. Ahora:
+cuando el modelo creció: `tipo_persona_actividad` y `notes` solo aparecieron en
+la pantalla dedicada. Ahora:
 
   - se recorre `customer_form`, así que un campo nuevo en CustomerForm.Meta.fields
     aparece aquí solo, sin tocar esta plantilla;
   - cada campo lo pinta el partial COMPARTIDO con la pantalla dedicada
-    (customer_form_field.html), incluidos los botones "+" de los tres catálogos.
+    (customer_form_field.html), incluido el botón "+" del catálogo.
 
-`modal_prefix="qc-"`: los "+" de este cuerpo abren los modales de SEGUNDO nivel
-(qc-classname-modal, qc-activitytype-modal, qc-persontype-modal), declarados como
-HERMANOS en upload.html. En la pantalla dedicada el mismo partial se incluye sin
-prefijo y abre classname-modal, etc.
+`modal_prefix="qc-"`: el "+" de este cuerpo abre el modal de SEGUNDO nivel
+(qc-personactivitytype-modal), declarado como HERMANO en upload.html. En la
+pantalla dedicada el mismo partial se incluye sin prefijo y abre
+personactivitytype-modal.
 
 Los ids son los del form (auto_id="qc-%s" en _upload_page_context): qc-name,
-qc-classname, qc-activity_type... Ese prefijo es lo que evita chocar con el
-id_name del formulario de subida, que vive en la misma página.
+qc-tipo_persona_actividad... Ese prefijo es lo que evita chocar con el id_name
+del formulario de subida, que vive en la misma página.
 
-Rejilla de dos columnas: con 13 campos, una sola columna obligaba a un scroll
+Rejilla de dos columnas: con 12 campos, una sola columna obligaba a un scroll
 largo hasta el botón "Crear cliente". Los campos de texto largo la cruzan
 entera, y `wide_field_names()` los deriva del widget en vez de listarlos a
 mano.{% endcomment %}

@@ -20,10 +20,9 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .frontend_forms import (
     CustomerForm, FileArchiveEditForm, FileArchiveUploadForm, PersonForm,
-    QuickActivityTypeForm, QuickArchiveClassForm, QuickClassNameForm,
-    QuickPersonTypeForm,
+    QuickArchiveClassForm, QuickPersonActivityTypeForm,
 )
-from .models import ActivityType, ClassName, Customer, FileArchive, Person, PersonType
+from .models import Customer, FileArchive, Person, PersonActivityType
 from .uploads import stamp_upload_metadata
 
 
@@ -56,114 +55,41 @@ def _open_file_or_404(obj):
         raise Http404
 
 # =============================================================================
-# Clase de cliente (ClassName) -- catálogo requerido para dar de alta Clientes
+# Tipo de persona (PersonActivityType) -- catálogo OPCIONAL del Cliente
 # =============================================================================
 
-class ClassNameListView(LoginRequiredMixin, ListView):
-    model = ClassName
-    template_name = "files/classname_list.html"
-    context_object_name = "classnames"
+class PersonActivityTypeListView(LoginRequiredMixin, ListView):
+    model = PersonActivityType
+    template_name = "files/personactivitytype_list.html"
+    context_object_name = "person_activity_types"
     paginate_by = 25
     ordering = ("name",)
-    # Sin permission_required, igual que Cliente/Persona: listar solo exige
-    # estar autenticado, sea cual sea el rol (ver authentication/signals.py).
 
 
 # No hay CreateView: el alta vive solo en el modal
-# (classname_quick_create_view). Los campos se declaran aquí en vez de en una
-# constante de módulo porque ya solo los usa esta vista -- la constante existía
-# para que la pareja Create/Update no derivara.
-class ClassNameUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    model = ClassName
+# (person_activity_type_quick_create_view). Los campos se declaran aquí en vez
+# de en una constante de módulo porque ya solo los usa esta vista -- la
+# constante existía para que la pareja Create/Update no derivara.
+class PersonActivityTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = PersonActivityType
     fields = ("name", "description")
-    template_name = "files/classname_form.html"
-    permission_required = "files.change_classname"
-    success_url = reverse_lazy("files:classname-list")
+    template_name = "files/personactivitytype_form.html"
+    permission_required = "files.change_personactivitytype"
+    success_url = reverse_lazy("files:personactivitytype-list")
 
 
-class ClassNameDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
-    model = ClassName
-    template_name = "files/classname_confirm_delete.html"
-    permission_required = "files.delete_classname"
-    success_url = reverse_lazy("files:classname-list")
+class PersonActivityTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = PersonActivityType
+    template_name = "files/personactivitytype_confirm_delete.html"
+    permission_required = "files.delete_personactivitytype"
+    success_url = reverse_lazy("files:personactivitytype-list")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Customer.classname es on_delete=CASCADE: borrar una clase se lleva
-        # por delante a sus clientes (y con ellos sus archivos). El usuario
-        # tiene que verlo antes de confirmar.
-        context["customer_count"] = self.object.customers.count()
-        return context
-
-
-# =============================================================================
-# Tipo de actividad (ActivityType) -- el otro catálogo que exige el Cliente
-# =============================================================================
-
-class ActivityTypeListView(LoginRequiredMixin, ListView):
-    model = ActivityType
-    template_name = "files/activitytype_list.html"
-    context_object_name = "activity_types"
-    paginate_by = 25
-    ordering = ("name",)
-
-
-# Sin CreateView, igual que ClassName: ver el comentario de arriba.
-class ActivityTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    model = ActivityType
-    fields = ("name", "description")
-    template_name = "files/activitytype_form.html"
-    permission_required = "files.change_activitytype"
-    success_url = reverse_lazy("files:activitytype-list")
-
-
-class ActivityTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
-    model = ActivityType
-    template_name = "files/activitytype_confirm_delete.html"
-    permission_required = "files.delete_activitytype"
-    success_url = reverse_lazy("files:activitytype-list")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Customer.activity_type es on_delete=CASCADE, igual que classname.
-        context["customer_count"] = self.object.customers.count()
-        return context
-
-
-# =============================================================================
-# Tipo de persona (PersonType) -- catálogo OPCIONAL del Cliente
-# =============================================================================
-
-class PersonTypeListView(LoginRequiredMixin, ListView):
-    model = PersonType
-    template_name = "files/persontype_list.html"
-    context_object_name = "person_types"
-    paginate_by = 25
-    ordering = ("name",)
-
-
-# Sin CreateView, igual que ClassName y ActivityType: ver el comentario de
-# ClassNameUpdateView.
-class PersonTypeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    model = PersonType
-    fields = ("name", "description")
-    template_name = "files/persontype_form.html"
-    permission_required = "files.change_persontype"
-    success_url = reverse_lazy("files:persontype-list")
-
-
-class PersonTypeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
-    model = PersonType
-    template_name = "files/persontype_confirm_delete.html"
-    permission_required = "files.delete_persontype"
-    success_url = reverse_lazy("files:persontype-list")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # A diferencia de classname/activity_type, Customer.person_type es
-        # SET_NULL: estos clientes NO se borran, se quedan sin tipo de persona.
-        # El template dice exactamente eso -- avisar de un borrado en cascada
-        # que no ocurre asusta sin motivo.
+        # Customer.tipo_persona_actividad es SET_NULL: estos clientes NO se
+        # borran, se quedan sin tipo de persona. El template dice exactamente
+        # eso -- avisar de un borrado en cascada que no ocurre asusta sin
+        # motivo.
         context["customer_count"] = self.object.customers.count()
         return context
 
@@ -589,31 +515,9 @@ def archive_class_quick_create_view(request):
 
 @login_required
 @require_POST
-@permission_required("files.add_classname", raise_exception=True)
-def classname_quick_create_view(request):
-    form = QuickClassNameForm(request.POST)
-    if form.is_valid():
-        obj = form.save()
-        return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
-    return JsonResponse({"errors": form.errors}, status=400)
-
-
-@login_required
-@require_POST
-@permission_required("files.add_activitytype", raise_exception=True)
-def activity_type_quick_create_view(request):
-    form = QuickActivityTypeForm(request.POST)
-    if form.is_valid():
-        obj = form.save()
-        return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
-    return JsonResponse({"errors": form.errors}, status=400)
-
-
-@login_required
-@require_POST
-@permission_required("files.add_persontype", raise_exception=True)
-def person_type_quick_create_view(request):
-    form = QuickPersonTypeForm(request.POST)
+@permission_required("files.add_personactivitytype", raise_exception=True)
+def person_activity_type_quick_create_view(request):
+    form = QuickPersonActivityTypeForm(request.POST)
     if form.is_valid():
         obj = form.save()
         return JsonResponse({"id": obj.pk, "label": str(obj)}, status=201)
